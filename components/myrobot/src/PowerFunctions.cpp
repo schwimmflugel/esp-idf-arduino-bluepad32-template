@@ -1,48 +1,93 @@
 #include "PowerFunctions.h"
 #include "Constants.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
-PowerFunctions::PowerFunctions(){}
+static const char* TAG = "PowerFunctions";
+
+PowerFunctions::PowerFunctions()
+  : shutdownVoltage_mV(0),
+    monitorTaskHandle(nullptr),
+    ema_mV(0),
+    batteryLow(false),
+    samplePeriodTicks(0)
+{}
 
 void PowerFunctions::begin() {
-    //Calculate the shutdown voltage to not go below the minimum cell voltage times the number of cells
-    analogReadResolution(12); // Set ADC resolution to 12-bit
-    shutdown_voltage = MIN_MVOLT_PER_CELL * NUM_OF_CELLS;
-    Serial.print("Shutdown Voltage Set: ");
-    Serial.println(shutdown_voltage);
+    // ADC setup
+    analogReadResolution(12);
+
+    // Compute cutoff
+    shutdownVoltage_mV = MIN_MVOLT_PER_CELL * NUM_OF_CELLS;
+    ESP_LOGI(TAG, "Shutdown Voltage Set: %d mV", shutdownVoltage_mV);
+
+    // Init EMA to a safe starting point
+    ema_mV = shutdownVoltage_mV;
+
+    samplePeriodTicks = pdMS_TO_TICKS(SAMPLE_PERIOD);
+
+    // Spawn monitor task
+    xTaskCreatePinnedToCore(
+        batteryMonitorTask,
+        "BatteryMonitor",
+        4096,
+        this,
+        tskIDLE_PRIORITY + 1,
+        &monitorTaskHandle,
+        APP_CPU_NUM
+    );
 }
 
-
-float PowerFunctions::getBatteryLevel() {
-    uint32_t rawValues;
-    for(uint8_t sample = 0; sample < BATT_SAMPLE_COUNT; sample++){
-        rawValues += analogRead(BATT_MEAS_PIN);
-    }
-
-    //Battery voltage in mVolts
-    float batteryVoltage = (rawValues / BATT_SAMPLE_COUNT) * BATTERY_MULTIPLIER * (3.3 / 4095.0) * 1000;
-    Serial.print("Battery Voltage: ");
-    Serial.println(batteryVoltage);
-
-    return batteryVoltage;
+bool PowerFunctions::isBatteryLow() const {
+    return batteryLow;
 }
 
-//Function to monitor the battery level. Returns True if battery level is low, False if otherwise
-//This has a specific read frequency so it should be called regularly but will only update as define in: BATT_READ_FREQ
-bool PowerFunctions::checkForLowBattery(){
-    
-    static bool lastUpdatedValue = false; //Variable to track the bool value between reads
-    static u32_t lastBatteryCheckTime;
-
-    //If within the update period, check for a low battery
-    if(millis() - lastBatteryCheckTime >= BATT_READ_FREQ){
-        lastBatteryCheckTime = millis();
-        if( getBatteryLevel() <= shutdown_voltage ){
-            Serial.println("Low Power");
-            lastUpdatedValue = true;
-        }
-        else{
-            lastUpdatedValue = false;
-        }
+// Burst-read or delayed-read ADC as before
+float PowerFunctions::readBatteryVoltage() {
+    uint32_t rawSum = 0;
+    for (uint8_t i = 0; i < BATT_SAMPLE_COUNT; ++i) {
+        rawSum += analogRead(BATT_MEAS_PIN);
+        vTaskDelay(samplePeriodTicks);
     }
-    return lastUpdatedValue;
+    float avgRaw = float(rawSum) / BATT_SAMPLE_COUNT;
+    float volts  = avgRaw * (3.3f / 4095.0f);
+    return volts * 1000.0f * BATTERY_MULTIPLIER;
+}
+
+// static
+void PowerFunctions::batteryMonitorTask(void* pvParameters) {
+    auto* self = static_cast<PowerFunctions*>(pvParameters);
+    TickType_t lastWake = xTaskGetTickCount();
+
+    for (;;) {
+        // 1) read raw
+        float raw_mV = self->readBatteryVoltage();
+
+        // 2) update EMA
+        self->ema_mV = EMA_ALPHA * raw_mV
+                     + (1.0f - EMA_ALPHA) * self->ema_mV;
+
+        // 3) use filtered value for print & threshold
+        ESP_LOGI(TAG, "Filtered Batt V (mV): %.2f", self->ema_mV);
+
+        // 4) hysteresis/debounce logic (simple example)
+        static TickType_t lowSince = 0;
+        if (self->ema_mV <= self->shutdownVoltage_mV) {
+            if (lowSince == 0) lowSince = xTaskGetTickCount();
+            // require 3s of low before latch
+            if (xTaskGetTickCount() - lowSince >= pdMS_TO_TICKS(3000)) {
+                self->batteryLow = true;
+                ESP_LOGE(TAG, "LOW BATTERY");
+            }
+        } else {
+            lowSince = 0;
+            // only clear after 100mV above shutdown
+            if (self->ema_mV >= self->shutdownVoltage_mV + BATT_HYSTERESIS) {
+                self->batteryLow = false;
+            }
+        }
+
+        // 5) wait until next period
+        vTaskDelayUntil(&lastWake, pdMS_TO_TICKS(BATT_READ_FREQ));
+    }
 }

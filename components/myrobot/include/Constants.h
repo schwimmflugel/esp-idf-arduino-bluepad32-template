@@ -22,8 +22,11 @@
 const uint16_t MIN_MVOLT_PER_CELL = 3300;
 const uint16_t NUM_OF_CELLS = 3; 
 
-const uint16_t BATT_READ_FREQ = 100; //Frequency to measure batttery voltage for safety shutdown
-const uint8_t BATT_SAMPLE_COUNT = 1; //How many Sample to average of a battery measurement
+const uint16_t BATT_READ_FREQ = 200; //Frequency to measure batttery voltage for safety shutdown
+const uint8_t BATT_SAMPLE_COUNT = 5; //How many Sample to average of a battery measurement
+const uint16_t SAMPLE_PERIOD = 10; //Time between multiple battery voltage samples
+const float EMA_ALPHA = 0.1f;  
+const float BATT_HYSTERESIS = 100.0f;
 
 
 
@@ -40,7 +43,7 @@ const uint8_t BATT_SAMPLE_COUNT = 1; //How many Sample to average of a battery m
 #define DEBUG_LED_PIN 10
 #define BATT_MEAS_PIN 0
 
-const float BATTERY_MULTIPLIER = 3.7; //Voltage divider: (27k + 10k)/10k
+const float BATTERY_MULTIPLIER = 10.0; //Voltage divider: (27k + 10k)/3k
 
 //Naming
 #define LEFT 1
@@ -52,6 +55,8 @@ const float BATTERY_MULTIPLIER = 3.7; //Voltage divider: (27k + 10k)/10k
 #define STOP 3
 #define RIGHTSIDE_UP 4
 #define UPSIDE_DOWN 5
+
+#define APP_CPU_NUM 0
 
 
 

@@ -1,17 +1,30 @@
 #ifndef POWER_FUNCTIONS_H
 #define POWER_FUNCTIONS_H
 
+#include "Constants.h"
 #include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 class PowerFunctions {
 public:
     PowerFunctions();
     void begin();
-    float getBatteryLevel();
-    bool checkForLowBattery();
+    bool isBatteryLow() const;
 
 private:
-    uint16_t shutdown_voltage;
+    static void batteryMonitorTask(void* pvParameters);
+    float readBatteryVoltage();
+
+    uint32_t shutdownVoltage_mV;
+    TaskHandle_t monitorTaskHandle;
+
+    // EMA state & parameter:
+    float ema_mV;  
+    //static constexpr float EMA_ALPHA = 0.1f;  
+
+    volatile bool batteryLow;
+    TickType_t samplePeriodTicks;
 };
 
 #endif

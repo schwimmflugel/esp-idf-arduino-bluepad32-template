@@ -6,6 +6,8 @@
 #include <Drive.h>
 #include <PowerFunctions.h>
 
+static const char* TAG = "TaskManager";
+
 TaskManager::TaskManager(): drum(ESC_1_PIN){
     _controllerTimeout = CONTROLLER_TIMEOUT;  //Might not be needed because of BLE connection status
     isStopped = true;
@@ -31,23 +33,23 @@ void TaskManager::update(bool isConnected, int leftDriveInput, int rightDriveInp
         isStopped = false;
     }
     else{
-        //stopAllMotors();
+        stopAllMotors();
     }
 }
 
 void TaskManager::run(){
     if(millis() - lastUpdateTime >= _controllerTimeout){
-        //stopAllMotors();
+        stopAllMotors();
     }
     //If power is low, stop all motors
-    if(powerFunctions.checkForLowBattery() == true){
-        //stopAllMotors();
+    if(powerFunctions.isBatteryLow() == true){
+        stopAllMotors();
     }
 }
 
 void TaskManager::stopAllMotors(){
     if(isStopped == false){
-        Serial.println("Stopping Motors");
+        ESP_LOGI(TAG, "Stopping Motors");
         drive.stop();
         drum.stop();
         isStopped = true;

@@ -24,6 +24,8 @@
 // from "sdkconfig.defaults" with:
 //    CONFIG_BLUEPAD32_USB_CONSOLE_ENABLE=n
 
+static const char* TAG = "Main";
+
 TaskManager taskManager;
 
 ControllerPtr myControllers[BP32_MAX_GAMEPADS];
@@ -34,11 +36,11 @@ void onConnectedController(ControllerPtr ctl) {
     bool foundEmptySlot = false;
     for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
         if (myControllers[i] == nullptr) {
-            Serial.printf("CALLBACK: Controller is connected, index=%d\n", i);
+            ESP_LOGI(TAG, "CALLBACK: Controller is connected, index=%d\n", i);
             // Additionally, you can get certain gamepad properties like:
             // Model, VID, PID, BTAddr, flags, etc.
             ControllerProperties properties = ctl->getProperties();
-            Serial.printf("Controller model: %s, VID=0x%04x, PID=0x%04x\n", ctl->getModelName(), properties.vendor_id,
+            ESP_LOGI(TAG,"Controller model: %s, VID=0x%04x, PID=0x%04x\n", ctl->getModelName(), properties.vendor_id,
                            properties.product_id);
             myControllers[i] = ctl;
             foundEmptySlot = true;
@@ -46,7 +48,7 @@ void onConnectedController(ControllerPtr ctl) {
         }
     }
     if (!foundEmptySlot) {
-        Serial.println("CALLBACK: Controller connected, but could not found empty slot");
+        ESP_LOGI(TAG,"CALLBACK: Controller connected, but could not found empty slot");
     }
 }
 
@@ -55,7 +57,7 @@ void onDisconnectedController(ControllerPtr ctl) {
 
     for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
         if (myControllers[i] == ctl) {
-            Serial.printf("CALLBACK: Controller disconnected from index=%d\n", i);
+            ESP_LOGI(TAG,"CALLBACK: Controller disconnected from index=%d\n", i);
             myControllers[i] = nullptr;
             foundController = true;
             break;
@@ -63,12 +65,12 @@ void onDisconnectedController(ControllerPtr ctl) {
     }
 
     if (!foundController) {
-        Serial.println("CALLBACK: Controller disconnected, but not found in myControllers");
+        ESP_LOGI(TAG,"CALLBACK: Controller disconnected, but not found in myControllers");
     }
 }
 
 void dumpGamepad(ControllerPtr ctl) {
-    Serial.printf(
+    ESP_LOGI(TAG,
         "idx=%d, dpad: 0x%02x, buttons: 0x%04x, axis L: %4d, %4d, axis R: %4d, %4d, brake: %4d, throttle: %4d, "
         "misc: 0x%02x, gyro x:%6d y:%6d z:%6d, accel x:%6d y:%6d z:%6d\n",
         ctl->index(),        // Controller Index
@@ -150,7 +152,7 @@ void processControllers() {
                 processGamepad(myController);
             }
             else {
-                Serial.printf("Unsupported controller\n");
+                ESP_LOGI(TAG,"Unsupported controller\n");
             }
         }
     }
@@ -158,9 +160,12 @@ void processControllers() {
 
 // Arduino setup function. Runs in CPU 1
 void setup() {
-    Serial.printf("Firmware: %s\n", BP32.firmwareVersion());
+
+    esp_log_level_set("*", ESP_LOG_DEBUG);
+
+    ESP_LOGI(TAG,"Firmware: %s\n", BP32.firmwareVersion());
     const uint8_t* addr = BP32.localBdAddress();
-    Serial.printf("BD Addr: %2X:%2X:%2X:%2X:%2X:%2X\n", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+    ESP_LOGI(TAG,"BD Addr: %2X:%2X:%2X:%2X:%2X:%2X\n", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 
     // Setup the Bluepad32 callbacks, and the default behavior for scanning or not.
     // By default, if the "startScanning" parameter is not passed, it will do the "start scanning".
