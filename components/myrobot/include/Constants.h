@@ -4,7 +4,13 @@
 #include <Arduino.h>
 
 //Modifiable Values
+#undef LOG_LOCAL_LEVEL
+#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
+
+#define TASK_MANAGER_READ_FREQ 50
+
 #define WEAPON_ENABLE true
+#define ENABLE_LOW_BATTERY_SHUTDOWN false
 
 #define DRIVE_MOTOR_PWM_FREQ 40000
 #define DRIVE_MOTOR_PWM_RESOLUTION 8

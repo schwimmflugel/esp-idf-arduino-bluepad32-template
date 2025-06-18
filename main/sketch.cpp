@@ -10,6 +10,10 @@
 #include "Constants.h"
 #include "TaskManager.h"
 
+#include "esp_log.h"
+#include "esp_task_wdt.h"
+
+
 //
 // README FIRST, README FIRST, README FIRST
 //
@@ -158,14 +162,14 @@ void processControllers() {
     }
 }
 
-// Arduino setup function. Runs in CPU 1
+
 void setup() {
 
     esp_log_level_set("*", ESP_LOG_DEBUG);
 
-    ESP_LOGI(TAG,"Firmware: %s\n", BP32.firmwareVersion());
+    ESP_LOGI(TAG,"Firmware: %s", BP32.firmwareVersion());
     const uint8_t* addr = BP32.localBdAddress();
-    ESP_LOGI(TAG,"BD Addr: %2X:%2X:%2X:%2X:%2X:%2X\n", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+    ESP_LOGI(TAG,"BD Addr: %2X:%2X:%2X:%2X:%2X:%2X", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 
     // Setup the Bluepad32 callbacks, and the default behavior for scanning or not.
     // By default, if the "startScanning" parameter is not passed, it will do the "start scanning".
@@ -196,10 +200,23 @@ void setup() {
     // By default, it is disabled.
     BP32.enableBLEService(false);
 
+    // 1) De-init any auto-subscribed idle WDT (no error check needed)
+    esp_task_wdt_deinit();
+
+    // 2) Configure the Task WDT to ignore idle task on core 0
+    esp_task_wdt_config_t wdt_conf = {
+        .timeout_ms     = 3000,   // 3 s
+        .idle_core_mask = 0,      // do NOT watch IDLE
+        .trigger_panic  = true    // reboot on timeout
+    };
+    ESP_ERROR_CHECK( esp_task_wdt_init(&wdt_conf) );
+
+    // 3) Watch the main Arduino loop task
+    ESP_ERROR_CHECK( esp_task_wdt_add(NULL) );
+
     taskManager.begin();
 }
 
-// Arduino loop function. Runs in CPU 1.
 void loop() {
     // This call fetches all the controllers' data.
     // Call this function in your main loop.
@@ -208,23 +225,15 @@ void loop() {
         processControllers();
 
         if (myControllers[0] && myControllers[0]->isConnected() && myControllers[0]->hasData()){
-            taskManager.update(myControllers[0]->isConnected(), myControllers[0]->axisY(), myControllers[0]->axisRY(), myControllers[0]->throttle());
+            taskManager.update(true, myControllers[0]->axisY(), myControllers[0]->axisRY(), myControllers[0]->throttle());
+        }
+        else{
+            taskManager.update(false, 0, 0, 0);
         }
 
     }
 
-    if(!myControllers[0] || !myControllers[0]->isConnected()){
-        taskManager.stopAllMotors();
-    }
+    esp_task_wdt_reset();            // feed the WDT
 
-    taskManager.run();
-
-    // The main loop must have some kind of "yield to lower priority task" event.
-    // Otherwise, the watchdog will get triggered.
-    // If your main loop doesn't have one, just add a simple `vTaskDelay(1)`.
-    // Detailed info here:
-    // https://stackoverflow.com/questions/66278271/task-watchdog-got-triggered-the-tasks-did-not-reset-the-watchdog-in-time
-
-    vTaskDelay(1);
-    //delay(150);
+    vTaskDelay(pdMS_TO_TICKS(100));
 }

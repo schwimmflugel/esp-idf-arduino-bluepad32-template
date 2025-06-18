@@ -13,6 +13,13 @@ PowerFunctions::PowerFunctions()
     samplePeriodTicks(0)
 {}
 
+/**
+ * @brief  Initialize ADC and start the battery‐monitoring task.
+ * 
+ * Calculates the shutdown voltage (in mV) based on 
+ * MIN_MVOLT_PER_CELL × NUM_OF_CELLS, then spins up 
+ * a FreeRTOS task to keep checking battery level.
+ */
 void PowerFunctions::begin() {
     // ADC setup
     analogReadResolution(12);
@@ -38,6 +45,12 @@ void PowerFunctions::begin() {
     );
 }
 
+/**
+ * @brief  Query the last‐known “battery low” state.
+ * 
+ * @return true  if the last measured voltage was at or below shutdownVoltage_mV  
+ * @return false if above shutdown voltage
+ */
 bool PowerFunctions::isBatteryLow() const {
     return batteryLow;
 }
@@ -54,7 +67,13 @@ float PowerFunctions::readBatteryVoltage() {
     return volts * 1000.0f * BATTERY_MULTIPLIER;
 }
 
-// static
+/**
+ * @brief      RTOS task: periodically samples the battery ADC.
+ * @param[in]  pvParameters  A pointer to the PowerFunctions instance (i.e. `this`).
+ * 
+ * This task will sleep for BATT_READ_FREQ ms between samples.
+ * @note       Uses analogReadResolution(12) and BATT_SAMPLE_COUNT samples.
+ */
 void PowerFunctions::batteryMonitorTask(void* pvParameters) {
     auto* self = static_cast<PowerFunctions*>(pvParameters);
     TickType_t lastWake = xTaskGetTickCount();
@@ -68,7 +87,7 @@ void PowerFunctions::batteryMonitorTask(void* pvParameters) {
                      + (1.0f - EMA_ALPHA) * self->ema_mV;
 
         // 3) use filtered value for print & threshold
-        ESP_LOGI(TAG, "Filtered Batt V (mV): %.2f", self->ema_mV);
+        ESP_LOGD(TAG, "Filtered Batt V (mV): %.2f", self->ema_mV);
 
         // 4) hysteresis/debounce logic (simple example)
         static TickType_t lowSince = 0;
@@ -77,7 +96,7 @@ void PowerFunctions::batteryMonitorTask(void* pvParameters) {
             // require 3s of low before latch
             if (xTaskGetTickCount() - lowSince >= pdMS_TO_TICKS(3000)) {
                 self->batteryLow = true;
-                ESP_LOGE(TAG, "LOW BATTERY");
+                ESP_LOGD(TAG, "LOW BATTERY");
             }
         } else {
             lowSince = 0;
