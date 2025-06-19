@@ -6,6 +6,8 @@
 #include "Drum.h"
 #include "Drive.h"
 #include "PowerFunctions.h"
+#include "Buttons.h"
+#include "LED.h"
 
 // FreeRTOS
 #include <freertos/FreeRTOS.h>
@@ -24,6 +26,8 @@ private:
     Drive drive;
     Drum drum;
     PowerFunctions powerFunctions;
+    Buttons buttons;
+    LED led;
 
     // controller state (written by update(), read by managerTask)
     volatile bool    _isConnected;

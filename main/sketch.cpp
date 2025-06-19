@@ -13,6 +13,10 @@
 #include "esp_log.h"
 #include "esp_task_wdt.h"
 
+#include "WebInterface.h"
+#include <WebServer.h>
+#include "OtaUpdater.h"
+
 
 //
 // README FIRST, README FIRST, README FIRST
@@ -29,6 +33,11 @@
 //    CONFIG_BLUEPAD32_USB_CONSOLE_ENABLE=n
 
 static const char* TAG = "Main";
+
+WebServer server(80);
+WebInterface webIf(server);
+OtaUpdater   ota(server);
+
 
 TaskManager taskManager;
 
@@ -74,9 +83,9 @@ void onDisconnectedController(ControllerPtr ctl) {
 }
 
 void dumpGamepad(ControllerPtr ctl) {
-    ESP_LOGI(TAG,
+    ESP_LOGD(TAG,
         "idx=%d, dpad: 0x%02x, buttons: 0x%04x, axis L: %4d, %4d, axis R: %4d, %4d, brake: %4d, throttle: %4d, "
-        "misc: 0x%02x, gyro x:%6d y:%6d z:%6d, accel x:%6d y:%6d z:%6d\n",
+        "misc: 0x%02x, gyro x:%6d y:%6d z:%6d, accel x:%6d y:%6d z:%6d",
         ctl->index(),        // Controller Index
         ctl->dpad(),         // D-pad
         ctl->buttons(),      // bitmask of pressed buttons
@@ -214,6 +223,9 @@ void setup() {
     // 3) Watch the main Arduino loop task
     ESP_ERROR_CHECK( esp_task_wdt_add(NULL) );
 
+    webIf.begin();
+    ota.begin();
+
     taskManager.begin();
 }
 
@@ -235,5 +247,7 @@ void loop() {
 
     esp_task_wdt_reset();            // feed the WDT
 
-    vTaskDelay(pdMS_TO_TICKS(100));
+    webIf.handleClient();
+
+    vTaskDelay(pdMS_TO_TICKS(100)); //Can't sample too fast or wifi doesn't work
 }

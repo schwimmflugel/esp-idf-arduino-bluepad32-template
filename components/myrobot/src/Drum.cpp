@@ -1,6 +1,9 @@
 #include "Drum.h"
 #include "Constants.h"
 #include <Arduino.h>
+#include "esp_log.h"
+
+static const char* TAG = "Drum";
 
 Drum::Drum(uint8_t pwmPin) : _pwmPin(pwmPin) {
     setInputLimits();
@@ -59,11 +62,8 @@ void Drum::setSpeed(int16_t speedInput) {
 
     //Convert the pulse width in µs to a duty cycle for the given frequency that is set
     uint16_t duty_cycle = (pulseWidthUs * maxPwmVal) / (1000000 / ESC_PWM_FREQ);
-    Serial.print("ESC Duty Cycle: ");
-    Serial.print(duty_cycle);
-    Serial.print("\tESC Pulse Width: ");
-    Serial.print(pulseWidthUs);
-    Serial.println("uSec");
+    ESP_LOGD(TAG, "ESC Duty Cycle: %d\tESC Pulse Width: %d uSec", duty_cycle, pulseWidthUs);
+    
 
     // Use ledcWriteMicroseconds to send the PWM signal
     ledcWrite(ESC_1_PIN, duty_cycle);

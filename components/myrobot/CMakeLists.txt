@@ -5,7 +5,11 @@ set(srcs
         "src/DriveMotor.cpp"
         "src/Drum.cpp"
         "src/PowerFunctions.cpp"
-        "src/TaskManager.cpp")
+        "src/TaskManager.cpp"
+        "src/Buttons.cpp"
+        "src/LED.cpp"
+        "src/OtaUpdater.cpp"
+        "src/WebInterface.cpp")
 
  set(requires
          arduino

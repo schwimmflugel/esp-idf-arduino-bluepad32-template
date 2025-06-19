@@ -3,9 +3,11 @@
 
 #include <Arduino.h>
 
+const char VERSION[] = "Version 1.0";
+
 //Modifiable Values
-#undef LOG_LOCAL_LEVEL
-#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
+//#undef LOG_LOCAL_LEVEL
+//#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
 
 #define TASK_MANAGER_READ_FREQ 50
 
@@ -23,6 +25,17 @@
 #define ESC_INITIALIZE_WAIT_TIME 3000 //milliseconds to provide a signal before returning to zero
 
 #define CONTROLLER_TIMEOUT 1000 //How many milliseconds before shutting off motors without a signal from BLE Controller
+
+//Push Button Settings
+enum ButtonPress {
+    BUTTON_NONE = 0,
+    BUTTON_SHORT,
+    BUTTON_LONG
+};
+#define BUTTON_LOGIC_LEVEL LOW //Logic Level when button is pressed
+#define DEBOUNCE_TIME 10 //milliseconds
+#define LONG_PRESS_TIME 1000 //milliseconds
+#define BUTTON_READ_WAIT 50 //read every ___ milliseconds
 
 //Lipo Settings
 const uint16_t MIN_MVOLT_PER_CELL = 3300;

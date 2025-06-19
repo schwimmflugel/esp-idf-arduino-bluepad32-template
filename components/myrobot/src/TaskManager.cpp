@@ -5,13 +5,17 @@
 #include <Drum.h>
 #include <Drive.h>
 #include <PowerFunctions.h>
+#include <Buttons.h>
 #include "esp_log.h"
+#include "LED.h"
 
 
 static const char* TAG = "TaskManager";
 
 TaskManager::TaskManager()
   : drum(ESC_1_PIN),
+    buttons(MODE_BUTTON_PIN),
+    led(DEBUG_LED_PIN),
     _isConnected(false),
     _leftInput(0),
     _rightInput(0),
@@ -33,6 +37,10 @@ void TaskManager::begin(){
     drive.setLateralInputLimits(-512,511);
 
     powerFunctions.begin();
+
+    buttons.begin();
+
+    led.begin();
 
     // create the RTOS task (adjust stack if you overflow)
     xTaskCreatePinnedToCore(
@@ -80,6 +88,30 @@ void TaskManager::managerTask(void* pvParameters) {
         // 3) Battery‐low check
         if (self->powerFunctions.isBatteryLow() && ENABLE_LOW_BATTERY_SHUTDOWN) {
             self->stopAllMotors();
+        }
+
+
+        ButtonPress buttonVal = self->buttons.checkForPress();
+  
+
+        switch(buttonVal){
+            case BUTTON_NONE:
+            break;
+
+            case BUTTON_SHORT: {
+            ESP_LOGI(TAG,"Button: Short Press");
+            self->led.enqueuePattern("---", false, 255);
+            }
+                
+            break;
+
+            case BUTTON_LONG:
+            ESP_LOGI(TAG,"Button: Long Press");
+            self->led.enqueuePattern(".-.", false, 255);                  
+            break;
+            
+            default:
+            break;
         }
 
         // 4) Wait exactly until the next cycle

@@ -2,6 +2,9 @@
 #include <Constants.h>
 #include <Arduino.h>
 #include <DriveMotor.h>
+#include "esp_log.h"
+
+static const char* TAG = "DriveMotor";
 
 
 DriveMotor::DriveMotor(byte fwd_pin, byte rev_pin, bool flip_direction){
@@ -11,9 +14,8 @@ DriveMotor::DriveMotor(byte fwd_pin, byte rev_pin, bool flip_direction){
 }
 
 void DriveMotor::begin(){
-    Serial.println("Drive Motor Begin");
-    if(!ledcAttach(_fwd_pin, DRIVE_MOTOR_PWM_FREQ, DRIVE_MOTOR_PWM_RESOLUTION)){Serial.println("Failed to initialize Drive Motor FWD PWM Pin");}
-    if(!ledcAttach(_rev_pin, DRIVE_MOTOR_PWM_FREQ, DRIVE_MOTOR_PWM_RESOLUTION)){Serial.println("Failed to initialize Drive Motor FWD PWM Pin");}
+    if(!ledcAttach(_fwd_pin, DRIVE_MOTOR_PWM_FREQ, DRIVE_MOTOR_PWM_RESOLUTION)){ESP_LOGE(TAG, "Failed to initialize Drive Motor FWD PWM Pin");}
+    if(!ledcAttach(_rev_pin, DRIVE_MOTOR_PWM_FREQ, DRIVE_MOTOR_PWM_RESOLUTION)){ESP_LOGE(TAG, "Failed to initialize Drive Motor Rev PWM Pin");}
 }
 
 /**
@@ -39,25 +41,19 @@ void DriveMotor::setSpeed(uint16_t speed, byte direction, byte orientation){
 
 
     if(direction == STOP){
-        Serial.println("Motor Stopped");
-        if(!ledcWrite(_fwd_pin, 0)){Serial.println("Failed to write Motor PWM");}
-        if(!ledcWrite(_rev_pin, 0)){Serial.println("Failed to write Motor PWM");}
+        ESP_LOGD(TAG, "Motor Stopped");
+        if(!ledcWrite(_fwd_pin, 0)){ESP_LOGE(TAG, "Failed to write Motor PWM");}
+        if(!ledcWrite(_rev_pin, 0)){ESP_LOGE(TAG, "Failed to write Motor PWM");}
     }
     else if( direction == FORWARD){
-        Serial.print("Forward:");
-        Serial.println(speed);
-        if(!ledcWrite(_fwd_pin, 255)){Serial.println("Failed to write Motor PWM");}
-        if(!ledcWrite(_rev_pin, 255-speed)){Serial.println("Failed to write Motor PWM");}
-        //if(!ledcWrite(_fwd_pin, speed)){Serial.println("Failed to write Motor PWM");}
-        //if(!ledcWrite(_rev_pin, 0)){Serial.println("Failed to write Motor PWM");}
+        ESP_LOGD(TAG, "Forward: %d", speed);
+        if(!ledcWrite(_fwd_pin, 255)){ESP_LOGE(TAG, "Failed to write Motor PWM");}
+        if(!ledcWrite(_rev_pin, 255-speed)){ESP_LOGE(TAG, "Failed to write Motor PWM");}
     }
     else if( direction == REVERSE ){
-        Serial.print("Reverse:");
-        Serial.println(speed);
-        if(!ledcWrite(_fwd_pin, 255-speed)){Serial.println("Failed to write Motor PWM");}
-        if(!ledcWrite(_rev_pin, 255)){Serial.println("Failed to write Motor PWM");}
-        //if(!ledcWrite(_fwd_pin, 0)){Serial.println("Failed to write Motor PWM");}
-        //if(!ledcWrite(_rev_pin, speed)){Serial.println("Failed to write Motor PWM");}
+        ESP_LOGD(TAG, "Reverse: %d", speed);
+        if(!ledcWrite(_fwd_pin, 255-speed)){ESP_LOGE(TAG, "Failed to write Motor PWM");}
+        if(!ledcWrite(_rev_pin, 255)){ESP_LOGE(TAG, "Failed to write Motor PWM");}
     }
 
 }

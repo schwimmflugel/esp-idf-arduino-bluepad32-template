@@ -2,6 +2,9 @@
 #include "Constants.h"
 #include "Drive.h"
 #include "DriveMotor.h"
+#include "esp_log.h"
+
+static const char* TAG = "Drive";
 
 
 Drive::Drive(): leftMotor(DRIVE_MOTOR1_1_PIN, DRIVE_MOTOR1_2_PIN, false), 
@@ -17,8 +20,7 @@ void Drive::begin(){
     leftMotor.begin();
     rightMotor.begin();
     maxPwmVal = (1 << DRIVE_MOTOR_PWM_RESOLUTION) - 1;
-    Serial.print("Max PWM: ");
-    Serial.println(maxPwmVal);
+    ESP_LOGI(TAG, "Max PWM: %d", maxPwmVal);
 }
 
 /**
