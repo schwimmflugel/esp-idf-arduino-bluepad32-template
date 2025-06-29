@@ -17,7 +17,7 @@ class TaskManager {
 public:
     TaskManager();
     void begin();
-    void update(bool isConnected, int leftDriveInput, int rightDriveInput, int escInput);
+    void update(bool isConnected, int leftStickInput = 0, int rightStickInput = 0, int rightTriggerInput = 0, int leftTriggerInput = 0);
     void stopAllMotors();
 
 private:
@@ -31,9 +31,10 @@ private:
 
     // controller state (written by update(), read by managerTask)
     volatile bool    _isConnected;
-    volatile int16_t _leftInput;
-    volatile int16_t _rightInput;
-    volatile int16_t _escInput;
+    volatile int16_t _leftDriveInput;
+    volatile int16_t _rightDriveInput;
+    volatile int16_t _forwardEscInput;
+    volatile int16_t _reverseEscInput;
     volatile bool pendingUpdate;
     volatile uint32_t lastUpdateTime;
 

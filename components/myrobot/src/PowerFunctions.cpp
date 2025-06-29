@@ -87,7 +87,7 @@ void PowerFunctions::batteryMonitorTask(void* pvParameters) {
                      + (1.0f - EMA_ALPHA) * self->ema_mV;
 
         // 3) use filtered value for print & threshold
-        ESP_LOGD(TAG, "Filtered Batt V (mV): %.2f", self->ema_mV);
+        ESP_LOGI(TAG, "Filtered Batt V (mV): %.2f", self->ema_mV);
 
         // 4) hysteresis/debounce logic (simple example)
         static TickType_t lowSince = 0;

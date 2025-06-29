@@ -16,6 +16,7 @@ DriveMotor::DriveMotor(byte fwd_pin, byte rev_pin, bool flip_direction){
 void DriveMotor::begin(){
     if(!ledcAttach(_fwd_pin, DRIVE_MOTOR_PWM_FREQ, DRIVE_MOTOR_PWM_RESOLUTION)){ESP_LOGE(TAG, "Failed to initialize Drive Motor FWD PWM Pin");}
     if(!ledcAttach(_rev_pin, DRIVE_MOTOR_PWM_FREQ, DRIVE_MOTOR_PWM_RESOLUTION)){ESP_LOGE(TAG, "Failed to initialize Drive Motor Rev PWM Pin");}
+    setSpeed(0, STOP, RIGHTSIDE_UP);
 }
 
 /**

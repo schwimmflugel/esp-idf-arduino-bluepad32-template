@@ -15,11 +15,12 @@ public:
  
     bool initializeESC();
 
-    void setSpeed(int16_t speedValue);
+    void setSpeed(uint16_t forwardValue, uint16_t reverseValue = 0);
 
     void stop();
 
 private:
+    bool escInitialized = false;
     uint8_t _pwmPin;
     uint16_t maxPwmVal;
     uint16_t _minInput;

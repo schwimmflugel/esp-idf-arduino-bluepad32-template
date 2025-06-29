@@ -180,6 +180,8 @@ void setup() {
     const uint8_t* addr = BP32.localBdAddress();
     ESP_LOGI(TAG,"BD Addr: %2X:%2X:%2X:%2X:%2X:%2X", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 
+    taskManager.begin(); //Begin first so motor drive pins are set correctly and aren't driving for a few seconds during bootup 
+
     // Setup the Bluepad32 callbacks, and the default behavior for scanning or not.
     // By default, if the "startScanning" parameter is not passed, it will do the "start scanning".
     // Notice that "Start scanning" will try to auto-connect to devices that are compatible with Bluepad32.
@@ -225,8 +227,6 @@ void setup() {
 
     webIf.begin();
     ota.begin();
-
-    taskManager.begin();
 }
 
 void loop() {
@@ -237,7 +237,7 @@ void loop() {
         processControllers();
 
         if (myControllers[0] && myControllers[0]->isConnected() && myControllers[0]->hasData()){
-            taskManager.update(true, myControllers[0]->axisY(), myControllers[0]->axisRY(), myControllers[0]->throttle());
+            taskManager.update(true, myControllers[0]->axisY(), myControllers[0]->axisRY(), myControllers[0]->throttle(), myControllers[0]->brake());
         }
         else{
             taskManager.update(false, 0, 0, 0);

@@ -11,8 +11,9 @@ const char VERSION[] = "Version 1.0";
 
 #define TASK_MANAGER_READ_FREQ 50
 
+#define WEAPON_BIDIRECTIONAL true
 #define WEAPON_ENABLE true
-#define ENABLE_LOW_BATTERY_SHUTDOWN false
+#define ENABLE_LOW_BATTERY_SHUTDOWN true
 
 #define DRIVE_MOTOR_PWM_FREQ 40000
 #define DRIVE_MOTOR_PWM_RESOLUTION 8
@@ -20,9 +21,10 @@ const char VERSION[] = "Version 1.0";
 #define ESC_PWM_FREQ 2000
 #define ESC_PWM_RESOLUTION 8
 #define ESC_MIN_PULSEWIDTH 125
+#define ESC_MID_PULSEWIDTH 188
 #define ESC_MAX_PULSEWIDTH 250
 #define ESC_INITIALIZE_FRACTION 2 //Send MAX / Fraction to ESC at startup
-#define ESC_INITIALIZE_WAIT_TIME 3000 //milliseconds to provide a signal before returning to zero
+#define ESC_INITIALIZE_WAIT_TIME 1000 //milliseconds to provide a signal before returning to zero
 
 #define CONTROLLER_TIMEOUT 1000 //How many milliseconds before shutting off motors without a signal from BLE Controller
 
@@ -38,10 +40,10 @@ enum ButtonPress {
 #define BUTTON_READ_WAIT 50 //read every ___ milliseconds
 
 //Lipo Settings
-const uint16_t MIN_MVOLT_PER_CELL = 3300;
+const uint16_t MIN_MVOLT_PER_CELL = 3500;
 const uint16_t NUM_OF_CELLS = 3; 
 
-const uint16_t BATT_READ_FREQ = 200; //Frequency to measure batttery voltage for safety shutdown
+const uint16_t BATT_READ_FREQ = 100; //Frequency to measure batttery voltage for safety shutdown
 const uint8_t BATT_SAMPLE_COUNT = 5; //How many Sample to average of a battery measurement
 const uint16_t SAMPLE_PERIOD = 10; //Time between multiple battery voltage samples
 const float EMA_ALPHA = 0.1f;  

@@ -17,9 +17,10 @@ TaskManager::TaskManager()
     buttons(MODE_BUTTON_PIN),
     led(DEBUG_LED_PIN),
     _isConnected(false),
-    _leftInput(0),
-    _rightInput(0),
-    _escInput(0),
+    _leftDriveInput(0),
+    _rightDriveInput(0),
+    _forwardEscInput(0),
+    _reverseEscInput(0),
     lastUpdateTime(0),
     _controllerTimeout(CONTROLLER_TIMEOUT),
     isStopped(true),
@@ -29,12 +30,13 @@ TaskManager::TaskManager()
 
 void TaskManager::begin(){
     // init submodules
-    drum.begin();
-    drum.setInputLimits(0,1023);
 
     drive.begin();
     drive.setForwardInputLimits(511,-512);
     drive.setLateralInputLimits(-512,511);
+
+    drum.begin();
+    drum.setInputLimits(0,1023);
 
     powerFunctions.begin();
 
@@ -65,11 +67,11 @@ void TaskManager::managerTask(void* pvParameters) {
             if (self->_isConnected) {
                 // drive + drum update
                 self->drive.two_stick_drive(
-                    self->_leftInput,
-                    self->_rightInput,
+                    self->_leftDriveInput,
+                    self->_rightDriveInput,
                     RIGHTSIDE_UP
                 );
-                self->drum.setSpeed(self->_escInput);
+                self->drum.setSpeed(self->_forwardEscInput, self->_reverseEscInput);
                 self->isStopped      = false;
                 self->lastUpdateTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
             }
@@ -121,12 +123,13 @@ void TaskManager::managerTask(void* pvParameters) {
 
 
 
-void TaskManager::update(bool isConnected, int leftDriveInput, int rightDriveInput, int escInput){
+void TaskManager::update(bool isConnected, int leftStickInput, int rightStickInput, int rightTriggerInput, int leftTriggerInput){
     // simply stash the latest values
     _isConnected = isConnected;
-    _leftInput   = leftDriveInput;
-    _rightInput  = rightDriveInput;
-    _escInput    = escInput;
+    _leftDriveInput   = leftStickInput;
+    _rightDriveInput  = rightStickInput;
+    _forwardEscInput    = rightTriggerInput;
+    _reverseEscInput = leftTriggerInput;
     pendingUpdate    = true;
 }
 
