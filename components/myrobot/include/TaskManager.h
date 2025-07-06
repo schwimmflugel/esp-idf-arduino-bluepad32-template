@@ -17,7 +17,7 @@ class TaskManager {
 public:
     TaskManager();
     void begin();
-    void update(bool isConnected, int leftStickInput = 0, int rightStickInput = 0, int rightTriggerInput = 0, int leftTriggerInput = 0);
+    void update(bool isConnected, const ControllerState& cs);
     void stopAllMotors();
 
 private:
@@ -39,7 +39,7 @@ private:
     volatile uint32_t lastUpdateTime;
 
     uint32_t _controllerTimeout;
-    bool     isStopped;
+    volatile bool     motorsStopped;
 
     TaskHandle_t taskHandle;
 };

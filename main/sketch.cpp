@@ -43,6 +43,8 @@ TaskManager taskManager;
 
 ControllerPtr myControllers[BP32_MAX_GAMEPADS];
 
+ControllerState controllerState;
+
 // This callback gets called any time a new gamepad is connected.
 // Up to 4 gamepads can be connected at the same time.
 void onConnectedController(ControllerPtr ctl) {
@@ -237,10 +239,18 @@ void loop() {
         processControllers();
 
         if (myControllers[0] && myControllers[0]->isConnected() && myControllers[0]->hasData()){
-            taskManager.update(true, myControllers[0]->axisY(), myControllers[0]->axisRY(), myControllers[0]->throttle(), myControllers[0]->brake());
+            controllerState.leftStickY = myControllers[0]->axisY();
+            controllerState.rightStickY = myControllers[0]->axisRY();
+            controllerState.rightTrigger = myControllers[0]->throttle();
+            controllerState.leftTrigger = myControllers[0]->brake();
+            taskManager.update(true, controllerState);
         }
         else{
-            taskManager.update(false, 0, 0, 0);
+            controllerState.leftStickY = 0;
+            controllerState.rightStickY = 0;
+            controllerState.rightTrigger = 0;
+            controllerState.leftTrigger = 0;
+            taskManager.update(false, controllerState);
         }
 
     }

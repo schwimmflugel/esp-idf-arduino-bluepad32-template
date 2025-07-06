@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-const char VERSION[] = "Version 1.0";
+const char VERSION[] = "Version 1.1";
 
 //Modifiable Values
 //#undef LOG_LOCAL_LEVEL
@@ -18,11 +18,12 @@ const char VERSION[] = "Version 1.0";
 #define DRIVE_MOTOR_PWM_FREQ 40000
 #define DRIVE_MOTOR_PWM_RESOLUTION 8
 
+//Settings for DShot125 Signal
 #define ESC_PWM_FREQ 2000
 #define ESC_PWM_RESOLUTION 8
-#define ESC_MIN_PULSEWIDTH 125
-#define ESC_MID_PULSEWIDTH 188
-#define ESC_MAX_PULSEWIDTH 250
+#define ESC_MIN_PULSEWIDTH 125 //Minimum pulsewidth in microseconds
+#define ESC_MID_PULSEWIDTH 188 //Middle pulsewidth(uSec) - Used for reverse motor
+#define ESC_MAX_PULSEWIDTH 250 //Maximum pulsewidth in microseconds
 #define ESC_INITIALIZE_FRACTION 2 //Send MAX / Fraction to ESC at startup
 #define ESC_INITIALIZE_WAIT_TIME 1000 //milliseconds to provide a signal before returning to zero
 
@@ -39,15 +40,28 @@ enum ButtonPress {
 #define LONG_PRESS_TIME 1000 //milliseconds
 #define BUTTON_READ_WAIT 50 //read every ___ milliseconds
 
-//Lipo Settings
-const uint16_t MIN_MVOLT_PER_CELL = 3500;
+//Battery Settings
+const uint16_t MIN_MVOLT_PER_CELL = 3500; //millivolts
 const uint16_t NUM_OF_CELLS = 3; 
 
 const uint16_t BATT_READ_FREQ = 100; //Frequency to measure batttery voltage for safety shutdown
 const uint8_t BATT_SAMPLE_COUNT = 5; //How many Sample to average of a battery measurement
 const uint16_t SAMPLE_PERIOD = 10; //Time between multiple battery voltage samples
-const float EMA_ALPHA = 0.1f;  
-const float BATT_HYSTERESIS = 100.0f;
+const float BATTERY_MULTIPLIER = 8.95; //Voltage divider: (27k + 10k)/3k
+const float EMA_ALPHA = 0.1f;  //Battery voltage measurement EMA filter value 
+const float BATT_HYSTERESIS = 100.0f; //millivolt that voltage must go above to be considered above low voltage again
+
+//Controller Inputs
+struct ControllerState {
+    int  leftStickX    = 0;
+    int  leftStickY    = 0;
+    int  rightStickX    = 0;
+    int  rightStickY    = 0;
+    int  rightTrigger   = 0;
+    int  leftTrigger    = 0;
+    uint16_t  buttons   = 0;
+    uint16_t  dpad      = 0;
+};
 
 
 
@@ -64,8 +78,6 @@ const float BATT_HYSTERESIS = 100.0f;
 #define DEBUG_LED_PIN 10
 #define BATT_MEAS_PIN 0
 
-const float BATTERY_MULTIPLIER = 10.0; //Voltage divider: (27k + 10k)/3k
-
 //Naming
 #define LEFT 1
 #define CENTER 2
@@ -78,9 +90,5 @@ const float BATTERY_MULTIPLIER = 10.0; //Voltage divider: (27k + 10k)/3k
 #define UPSIDE_DOWN 5
 
 #define APP_CPU_NUM 0
-
-
-
-
 
 #endif

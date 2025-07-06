@@ -23,13 +23,12 @@ TaskManager::TaskManager()
     _reverseEscInput(0),
     lastUpdateTime(0),
     _controllerTimeout(CONTROLLER_TIMEOUT),
-    isStopped(true),
+    motorsStopped(true),
     pendingUpdate(false),
     taskHandle(nullptr)
 {}
 
 void TaskManager::begin(){
-    // init submodules
 
     drive.begin();
     drive.setForwardInputLimits(511,-512);
@@ -62,17 +61,23 @@ void TaskManager::managerTask(void* pvParameters) {
     const TickType_t period = pdMS_TO_TICKS(50);  // adjust as needed
 
     for (;;) {
-        // 1) If there's a new controller update pending, apply it
+
+        vTaskDelayUntil(&lastWake, period);
+
+
+        //Battery‐low check
+        if (self->powerFunctions.isBatteryLow() && ENABLE_LOW_BATTERY_SHUTDOWN) {
+            self->stopAllMotors();
+            continue; // Skip to the next loop, otherwise the motor will momentarily start before quickly being stopped again
+        }
+
+        //If there's a new controller update pending, apply it
         if (self->pendingUpdate) {
             if (self->_isConnected) {
                 // drive + drum update
-                self->drive.two_stick_drive(
-                    self->_leftDriveInput,
-                    self->_rightDriveInput,
-                    RIGHTSIDE_UP
-                );
+                self->drive.two_stick_drive(self->_leftDriveInput, self->_rightDriveInput, RIGHTSIDE_UP);
                 self->drum.setSpeed(self->_forwardEscInput, self->_reverseEscInput);
-                self->isStopped      = false;
+                self->motorsStopped      = false;
                 self->lastUpdateTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
             }
             else {
@@ -82,13 +87,8 @@ void TaskManager::managerTask(void* pvParameters) {
             self->pendingUpdate = false;
         }
 
-        // 2) If we've timed out, stop motors (once)
+        //If we've timed out, stop motors (once)
         if ((xTaskGetTickCount() * portTICK_PERIOD_MS - self->lastUpdateTime) >= self->_controllerTimeout){
-            self->stopAllMotors();
-        }
-
-        // 3) Battery‐low check
-        if (self->powerFunctions.isBatteryLow() && ENABLE_LOW_BATTERY_SHUTDOWN) {
             self->stopAllMotors();
         }
 
@@ -115,30 +115,30 @@ void TaskManager::managerTask(void* pvParameters) {
             default:
             break;
         }
-
-        // 4) Wait exactly until the next cycle
-        vTaskDelayUntil(&lastWake, period);
     }
 }
 
 
-
-void TaskManager::update(bool isConnected, int leftStickInput, int rightStickInput, int rightTriggerInput, int leftTriggerInput){
-    // simply stash the latest values
-    _isConnected = isConnected;
-    _leftDriveInput   = leftStickInput;
-    _rightDriveInput  = rightStickInput;
-    _forwardEscInput    = rightTriggerInput;
-    _reverseEscInput = leftTriggerInput;
-    pendingUpdate    = true;
+/**
+ * Update the task manager with recent controller values
+ * @param isConnected         Is the controller actively connected
+ * @param ControllerState     Pass the values of the controller inputs
+ *    
+ */
+void TaskManager::update(bool isConnected, const ControllerState& cs){
+    _leftDriveInput   = cs.leftStickY;
+    _rightDriveInput  = cs.rightStickY;
+    _forwardEscInput  = cs.rightTrigger;
+    _reverseEscInput  = cs.leftTrigger;
+    pendingUpdate     = true;
 }
 
-
+//Stop all motors in the robot. If everything is already stopped, it will pass
 void TaskManager::stopAllMotors(){
-    if(isStopped == false){
+    if(motorsStopped == false){
         ESP_LOGI(TAG, "Stopping Motors");
         drive.stop();
         drum.stop();
-        isStopped = true;
+        motorsStopped = true;
     }
 }

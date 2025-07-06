@@ -61,7 +61,8 @@ bool Drum::initializeESC(){
 
 /**
  * Sets the drum speed with the input from the controller value
- * @param speedInput     The speed input value between Min and Max Input
+ * @param forwardValue     The forward speed input value between Min and Max Input
+ * @param reverseValue     The reverse speed input value between Min and Max Input (Optional, default = 0)
  */
 void Drum::setSpeed(uint16_t forwardValue, uint16_t reverseValue) {
     // Ensure throttlePercent is within the valid range
