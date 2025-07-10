@@ -87,14 +87,14 @@ void PowerFunctions::batteryMonitorTask(void* pvParameters) {
                      + (1.0f - EMA_ALPHA) * self->ema_mV;
 
         // 3) use filtered value for print & threshold
-        ESP_LOGI(TAG, "Filtered Batt V (mV): %.2f", self->ema_mV);
+        ESP_LOGD(TAG, "Filtered Batt V (mV): %.2f", self->ema_mV);
 
         // 4) hysteresis/debounce logic (simple example)
         static TickType_t lowSince = 0;
         if (self->ema_mV <= self->shutdownVoltage_mV) {
             if (lowSince == 0) lowSince = xTaskGetTickCount();
             // require 3s of low before latch
-            if (xTaskGetTickCount() - lowSince >= pdMS_TO_TICKS(3000)) {
+            if (xTaskGetTickCount() - lowSince >= pdMS_TO_TICKS(BATTERY_DEBOUNCE_TIME)) {
                 self->batteryLow = true;
                 ESP_LOGD(TAG, "LOW BATTERY");
             }

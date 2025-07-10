@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-const char VERSION[] = "Version 1.1";
+const char VERSION[] = "Version 1.2";
 
 //Modifiable Values
 //#undef LOG_LOCAL_LEVEL
@@ -15,7 +15,7 @@ const char VERSION[] = "Version 1.1";
 #define WEAPON_ENABLE true
 #define ENABLE_LOW_BATTERY_SHUTDOWN true
 
-#define DRIVE_MOTOR_PWM_FREQ 40000
+#define DRIVE_MOTOR_PWM_FREQ 20000
 #define DRIVE_MOTOR_PWM_RESOLUTION 8
 
 //Settings for DShot125 Signal
@@ -47,6 +47,7 @@ const uint16_t NUM_OF_CELLS = 3;
 const uint16_t BATT_READ_FREQ = 100; //Frequency to measure batttery voltage for safety shutdown
 const uint8_t BATT_SAMPLE_COUNT = 5; //How many Sample to average of a battery measurement
 const uint16_t SAMPLE_PERIOD = 10; //Time between multiple battery voltage samples
+const uint16_t BATTERY_DEBOUNCE_TIME = 3000; //Time in milliseconds that the battery voltage must be below threshold to be considered low voltage. Helps ignore voltage sag
 const float BATTERY_MULTIPLIER = 8.95; //Voltage divider: (27k + 10k)/3k
 const float EMA_ALPHA = 0.1f;  //Battery voltage measurement EMA filter value 
 const float BATT_HYSTERESIS = 100.0f; //millivolt that voltage must go above to be considered above low voltage again
@@ -62,8 +63,6 @@ struct ControllerState {
     uint16_t  buttons   = 0;
     uint16_t  dpad      = 0;
 };
-
-
 
 //Board Specific Settings
 #define ESC_1_PIN 4
