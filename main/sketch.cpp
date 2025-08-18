@@ -17,6 +17,9 @@
 #include <WebServer.h>
 #include "OtaUpdater.h"
 
+#include "rgbLED.h"
+#include "esp_pm.h"
+
 
 //
 // README FIRST, README FIRST, README FIRST
@@ -44,6 +47,9 @@ TaskManager taskManager;
 ControllerPtr myControllers[BP32_MAX_GAMEPADS];
 
 ControllerState controllerState;
+
+rgbLED ledStrip(4, ESC_2_PIN, NEO_GRBW + NEO_KHZ800);
+
 
 // This callback gets called any time a new gamepad is connected.
 // Up to 4 gamepads can be connected at the same time.
@@ -226,6 +232,17 @@ void setup() {
 
     // 3) Watch the main Arduino loop task
     ESP_ERROR_CHECK( esp_task_wdt_add(NULL) );
+
+
+    // Disable Wi-Fi power save and light sleep so RMT can init
+    WiFi.setSleep(false);
+
+    ledStrip.begin();
+    ledStrip.setBrightness(255);
+
+    // Option 1: solid Red
+    //ledStrip.setColor(255, 0, 0, 0);
+    ledStrip.setRainbow(true, 20, 25);
 
     webIf.begin();
     ota.begin();

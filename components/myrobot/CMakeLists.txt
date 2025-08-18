@@ -9,7 +9,10 @@ set(srcs
         "src/Buttons.cpp"
         "src/LED.cpp"
         "src/OtaUpdater.cpp"
-        "src/WebInterface.cpp")
+        "src/WebInterface.cpp"
+        "src/rgbLED.cpp"
+        "src/Adafruit_NeoPixel.cpp"
+        "src/esp.c")
 
  set(requires
          arduino

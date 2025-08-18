@@ -74,3 +74,6 @@ CONFIG_ARDUINO_SELECTIVE_ESP_SR=n
 # See: https://github.com/bluekitchen/btstack/issues/599
 #
 CONFIG_BTSTACK_AUDIO=n
+
+#Disable to use RMT driver for Neopixel 800kHz timer
+CONFIG_PM_ENABLE=n

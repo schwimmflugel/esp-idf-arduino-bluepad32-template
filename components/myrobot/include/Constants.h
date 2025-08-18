@@ -88,6 +88,10 @@ struct ControllerState {
 #define RIGHTSIDE_UP 4
 #define UPSIDE_DOWN 5
 
+#define BATTERY_GOOD 1
+#define BATTERY_WARN 2
+#define BATTERY_LOW 3
+
 #define APP_CPU_NUM 0
 
 #endif
