@@ -2,6 +2,7 @@
 #include "Constants.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include "esp_task_wdt.h"
 
 static const char* TAG = "PowerFunctions";
 
@@ -9,7 +10,7 @@ PowerFunctions::PowerFunctions()
   : shutdownVoltage_mV(0),
     monitorTaskHandle(nullptr),
     ema_mV(0),
-    batteryLow(false),
+    batteryState(BATTERY_GOOD),
     samplePeriodTicks(0)
 {}
 
@@ -46,13 +47,12 @@ void PowerFunctions::begin() {
 }
 
 /**
- * @brief  Query the last‐known “battery low” state.
+ * @brief  Get the last known battery state.
  * 
- * @return true  if the last measured voltage was at or below shutdownVoltage_mV  
- * @return false if above shutdown voltage
+ * @return BATTERY_GOOD, BATTERY_WARN, or BATTERY_LOW
  */
-bool PowerFunctions::isBatteryLow() const {
-    return batteryLow;
+int PowerFunctions::getBatteryState() const {
+    return batteryState;
 }
 
 // Burst-read or delayed-read ADC as before
@@ -78,35 +78,42 @@ void PowerFunctions::batteryMonitorTask(void* pvParameters) {
     auto* self = static_cast<PowerFunctions*>(pvParameters);
     TickType_t lastWake = xTaskGetTickCount();
 
+    const int warnVoltage_mV = WARN_MVOLT_PER_CELL * NUM_OF_CELLS;
+    const int lowVoltage_mV  = MIN_MVOLT_PER_CELL * NUM_OF_CELLS;
+
+    static TickType_t lowSince = 0;
+
+    ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
+
     for (;;) {
-        // 1) read raw
+
         float raw_mV = self->readBatteryVoltage();
 
-        // 2) update EMA
         self->ema_mV = EMA_ALPHA * raw_mV
                      + (1.0f - EMA_ALPHA) * self->ema_mV;
 
-        // 3) use filtered value for print & threshold
         ESP_LOGD(TAG, "Filtered Batt V (mV): %.2f", self->ema_mV);
 
-        // 4) hysteresis/debounce logic (simple example)
-        static TickType_t lowSince = 0;
-        if (self->ema_mV <= self->shutdownVoltage_mV) {
+        // --- Debounce for LOW ---
+        if (self->ema_mV <= lowVoltage_mV) {
             if (lowSince == 0) lowSince = xTaskGetTickCount();
-            // require 3s of low before latch
             if (xTaskGetTickCount() - lowSince >= pdMS_TO_TICKS(BATTERY_DEBOUNCE_TIME)) {
-                self->batteryLow = true;
-                ESP_LOGD(TAG, "LOW BATTERY");
+                self->batteryState = BATTERY_LOW;
+                ESP_LOGD(TAG, "Battery LOW");
             }
         } else {
             lowSince = 0;
-            // only clear after 100mV above shutdown
-            if (self->ema_mV >= self->shutdownVoltage_mV + BATT_HYSTERESIS) {
-                self->batteryLow = false;
+
+            // --- Hysteresis for WARN/GOOD ---
+            if (self->ema_mV <= warnVoltage_mV) {
+                self->batteryState = BATTERY_WARN;
+                ESP_LOGD(TAG, "Battery WARNING");
+            } else if (self->ema_mV >= warnVoltage_mV + BATT_HYSTERESIS) {
+                self->batteryState = BATTERY_GOOD;
             }
         }
 
-        // 5) wait until next period
+        ESP_ERROR_CHECK(esp_task_wdt_reset());   // feed for THIS task
         vTaskDelayUntil(&lastWake, pdMS_TO_TICKS(BATT_READ_FREQ));
     }
 }

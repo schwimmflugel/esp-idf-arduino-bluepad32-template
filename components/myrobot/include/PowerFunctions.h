@@ -10,7 +10,7 @@ class PowerFunctions {
 public:
     PowerFunctions();
     void begin();
-    bool isBatteryLow() const;
+    int getBatteryState() const;
 
 private:
     static void batteryMonitorTask(void* pvParameters);
@@ -23,7 +23,7 @@ private:
     float ema_mV;  
     //static constexpr float EMA_ALPHA = 0.1f;  
 
-    volatile uint8_t batteryLow;
+    volatile uint8_t batteryState;
     TickType_t samplePeriodTicks;
 };
 

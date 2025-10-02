@@ -182,7 +182,14 @@ void processControllers() {
 
 void setup() {
 
-    esp_log_level_set("*", ESP_LOG_DEBUG);
+    esp_log_level_set("*", ESP_LOG_INFO);   // or ESP_LOG_ERROR
+
+    esp_log_level_set("PowerFunctions", ESP_LOG_DEBUG);
+    esp_log_level_set("TaskManager",    ESP_LOG_DEBUG);
+    esp_log_level_set("Drive",          ESP_LOG_DEBUG);
+    esp_log_level_set("DriveMotor",     ESP_LOG_DEBUG);
+    esp_log_level_set("Drum",           ESP_LOG_DEBUG);
+    esp_log_level_set("Main",           ESP_LOG_DEBUG);   
 
     ESP_LOGI(TAG,"Firmware: %s", BP32.firmwareVersion());
     const uint8_t* addr = BP32.localBdAddress();
@@ -220,18 +227,20 @@ void setup() {
     BP32.enableBLEService(false);
 
     // 1) De-init any auto-subscribed idle WDT (no error check needed)
-    esp_task_wdt_deinit();
+    //esp_task_wdt_deinit();
 
     // 2) Configure the Task WDT to ignore idle task on core 0
-    esp_task_wdt_config_t wdt_conf = {
+    /*esp_task_wdt_config_t wdt_conf = {
         .timeout_ms     = 3000,   // 3 s
         .idle_core_mask = 0,      // do NOT watch IDLE
         .trigger_panic  = true    // reboot on timeout
-    };
-    ESP_ERROR_CHECK( esp_task_wdt_init(&wdt_conf) );
+    };*/
+
+    //ESP_ERROR_CHECK( esp_task_wdt_init(&wdt_conf) );
 
     // 3) Watch the main Arduino loop task
-    ESP_ERROR_CHECK( esp_task_wdt_add(NULL) );
+    // TWDT already initialized via sdkconfig
+    ESP_ERROR_CHECK(esp_task_wdt_add(NULL));   // watch the Arduino loopTask once
 
 
     // Disable Wi-Fi power save and light sleep so RMT can init
@@ -272,9 +281,9 @@ void loop() {
 
     }
 
-    esp_task_wdt_reset();            // feed the WDT
-
     webIf.handleClient();
+
+    esp_task_wdt_reset();            // feed the WDT
 
     vTaskDelay(pdMS_TO_TICKS(100)); //Can't sample too fast or wifi doesn't work
 }

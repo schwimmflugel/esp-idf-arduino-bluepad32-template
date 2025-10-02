@@ -42,6 +42,7 @@ enum ButtonPress {
 
 //Battery Settings
 const uint16_t MIN_MVOLT_PER_CELL = 3500; //millivolts
+const uint16_t WARN_MVOLT_PER_CELL = 3700; //millivolts
 const uint16_t NUM_OF_CELLS = 3; 
 
 const uint16_t BATT_READ_FREQ = 100; //Frequency to measure batttery voltage for safety shutdown

@@ -8,6 +8,8 @@
 #include <Buttons.h>
 #include "esp_log.h"
 #include "LED.h"
+#include "esp_task_wdt.h"
+
 
 
 static const char* TAG = "TaskManager";
@@ -60,20 +62,27 @@ void TaskManager::managerTask(void* pvParameters) {
     TickType_t lastWake = xTaskGetTickCount();
     const TickType_t period = pdMS_TO_TICKS(50);  // adjust as needed
 
+    ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
+
     for (;;) {
 
         vTaskDelayUntil(&lastWake, period);
 
 
-        //Battery‐low check
-        if (self->powerFunctions.isBatteryLow() && ENABLE_LOW_BATTERY_SHUTDOWN) {
+        //Battery‐State check
+        uint8_t batteryState = self->powerFunctions.getBatteryState();
+        if( batteryState == BATTERY_WARN) {
+            ESP_LOGD(TAG, "Battery Warning");
+        }
+        else if (batteryState == BATTERY_LOW && ENABLE_LOW_BATTERY_SHUTDOWN) {
+
             self->stopAllMotors();
         }
 
         //If there's a new controller update pending, apply it
         if (self->pendingUpdate) {
             if (self->_isConnected) {
-                if( self->powerFunctions.isBatteryLow() == false){
+                if( batteryState != BATTERY_LOW ){
                     //Put in things that can be ONLY be updated if the battery is not low
                     //This is the safer section as it protects the battery from overdrain
                     self->drive.two_stick_drive(self->_leftDriveInput, self->_rightDriveInput, RIGHTSIDE_UP);
@@ -120,6 +129,8 @@ void TaskManager::managerTask(void* pvParameters) {
             default:
             break;
         }
+
+        ESP_ERROR_CHECK(esp_task_wdt_reset());   // feed for THIS task
     }
 }
 
