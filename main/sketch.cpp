@@ -17,8 +17,9 @@
 #include <WebServer.h>
 #include "OtaUpdater.h"
 
-//#include "rgbLED.h"
-//#include "esp_pm.h"
+#include "rgbLED.h"
+#include "esp_pm.h"
+
 
 
 //
@@ -37,6 +38,10 @@
 
 static const char* TAG = "Main";
 
+ControllerState controllerState;
+
+TaskManager taskManager;
+
 WebServer server(80);
 WebInterface webIf(server);
 OtaUpdater   ota(server);
@@ -44,9 +49,6 @@ OtaUpdater   ota(server);
 
 ControllerPtr myControllers[BP32_MAX_GAMEPADS];
 
-ControllerState controllerState;
-
-TaskManager taskManager;
 
 //rgbLED ledStrip(4, ESC_2_PIN, NEO_GRBW + NEO_KHZ800);
 
@@ -182,6 +184,14 @@ void processControllers() {
 
 void setup() {
 
+
+    // Disable automatic light sleep
+    esp_pm_lock_handle_t pm_lock;
+    esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "no_light_sleep", &pm_lock);
+    esp_pm_lock_acquire(pm_lock);
+
+
+    
     esp_log_level_set("*", ESP_LOG_INFO);   // or ESP_LOG_ERROR
 
     esp_log_level_set("PowerFunctions", ESP_LOG_DEBUG);
@@ -191,6 +201,12 @@ void setup() {
     esp_log_level_set("Drum",           ESP_LOG_DEBUG);
     esp_log_level_set("rgbLED",         ESP_LOG_DEBUG);
     esp_log_level_set("Main",           ESP_LOG_DEBUG);   
+
+
+    // Disable Wi-Fi power save and light sleep so RMT can init
+    WiFi.setSleep(false);
+
+    taskManager.begin(); //Begin first so motor drive pins are set correctly and aren't driving for a few seconds during bootup 
 
 
     ESP_LOGI(TAG,"Firmware: %s", BP32.firmwareVersion());
@@ -230,11 +246,6 @@ void setup() {
     // TWDT already initialized via sdkconfig
     ESP_ERROR_CHECK(esp_task_wdt_add(NULL));   // watch the Arduino loopTask once
 
-
-    // Disable Wi-Fi power save and light sleep so RMT can init
-    WiFi.setSleep(false);
-
-    taskManager.begin(); //Begin first so motor drive pins are set correctly and aren't driving for a few seconds during bootup 
 
     //ledStrip.begin();
     //ledStrip.setBrightness(255);

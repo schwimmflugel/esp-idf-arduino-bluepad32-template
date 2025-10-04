@@ -38,10 +38,6 @@ TaskManager::TaskManager()
 
 void TaskManager::begin(){
 
-    ledStrip.begin();
-    ledStrip.setBrightness(255);
-    ledStrip.setColor(255, 0, 0, 0);
-
 
     drive.begin();
     drive.setForwardInputLimits(511,-512);
@@ -55,6 +51,10 @@ void TaskManager::begin(){
     buttons.begin();
 
     led.begin();
+
+    ledStrip.begin();
+    ledStrip.setBrightness(255);
+    ledStrip.setColor(255, 0, 0, 0);
 
 
     // create the RTOS task (adjust stack if you overflow)
@@ -85,7 +85,7 @@ void TaskManager::managerTask(void* pvParameters) {
         static int lastBatteryState = -1;
         uint8_t batteryState = self->powerFunctions.getBatteryState();
 
-        if(lastBatteryState != batteryState){ //Only update if there is a change in the battery state from last time
+        if(lastBatteryState != batteryState || true){ //Only update if there is a change in the battery state from last time
             switch (batteryState) {
                 case BATTERY_GOOD:
                     self->ledStrip.setRainbow(true, 20, 25);   // effect for "good"
@@ -102,7 +102,7 @@ void TaskManager::managerTask(void* pvParameters) {
                     }
                     break;
                 default:
-                    self->ledStrip.setColor(255, 0, 0,0);        // red
+                    self->ledStrip.setColor(255, 0, 0, 0);        // red
                     break;
             }
         }

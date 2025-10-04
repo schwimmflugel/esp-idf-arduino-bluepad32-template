@@ -9,11 +9,6 @@
 
 #include "sdkconfig.h"
 
-#if CONFIG_IDF_TARGET_ESP32C3
-#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP
-#error "CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP is ON. Set it to n in sdkconfig.defaults."
-#endif
-#endif
 
 static const char* TAG = "rgbLED";
 
@@ -39,10 +34,6 @@ void rgbLED::begin() {
 
 
   ESP_LOGI(TAG, "rgbLED Initializing...");
-  /*ESP_LOGI(TAG, "PM_ENABLE=%d  PD_PERIPH_LS=%d  PD_CPU_LS=%d",
-         CONFIG_PM_ENABLE,
-         CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP,
-         CONFIG_PM_POWER_DOWN_CPU_IN_LIGHT_SLEEP);*/
 
   strip.begin();
   strip.clear();
