@@ -1,6 +1,8 @@
 #pragma once
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include "esp_pm.h"
+
 
 class rgbLED {
 public:
@@ -46,4 +48,9 @@ private:
   // state
   volatile uint16_t baseHue    = 0;     // 0..65535 for ColorHSV
   uint8_t lastR = 0, lastG = 0, lastB = 0, lastW = 0; // for STATIC re-show
+
+  #if CONFIG_PM_ENABLE
+    esp_pm_lock_handle_t _no_ls = nullptr;
+    esp_pm_lock_handle_t _max_f = nullptr;
+  #endif
 };

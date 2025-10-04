@@ -23,7 +23,7 @@ private:
     float ema_mV;  
     //static constexpr float EMA_ALPHA = 0.1f;  
 
-    volatile uint8_t batteryState;
+    volatile uint8_t batteryState = BATTERY_GOOD;
     TickType_t samplePeriodTicks;
 };
 

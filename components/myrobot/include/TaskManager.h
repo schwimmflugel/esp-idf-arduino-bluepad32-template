@@ -8,6 +8,8 @@
 #include "PowerFunctions.h"
 #include "Buttons.h"
 #include "LED.h"
+#include "rgbLED.h"
+#include "esp_pm.h"
 
 // FreeRTOS
 #include <freertos/FreeRTOS.h>
@@ -28,6 +30,7 @@ private:
     PowerFunctions powerFunctions;
     Buttons buttons;
     LED led;
+    rgbLED ledStrip;
 
     // controller state (written by update(), read by managerTask)
     volatile bool    _isConnected;

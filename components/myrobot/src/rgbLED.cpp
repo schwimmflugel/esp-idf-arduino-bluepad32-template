@@ -1,4 +1,21 @@
 #include "rgbLED.h"
+#include "esp_err.h"
+#include "esp_log.h"
+#include <Adafruit_NeoPixel.h>
+
+#if CONFIG_PM_ENABLE
+  #include "esp_pm.h"
+#endif
+
+#include "sdkconfig.h"
+
+#if CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP
+#error "CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP is ON. Set it to n in sdkconfig.defaults."
+#endif
+#endif
+
+static const char* TAG = "rgbLED";
 
 rgbLED::rgbLED(uint16_t numPixels, uint8_t pin, neoPixelType pixelType)
 : strip(numPixels, pin, pixelType),
@@ -7,9 +24,29 @@ rgbLED::rgbLED(uint16_t numPixels, uint8_t pin, neoPixelType pixelType)
 {}
 
 void rgbLED::begin() {
+#if CONFIG_PM_ENABLE
+  // Create PM locks and acquire them. If for some reason the target doesn’t support it,
+  // don’t crash — just skip locks.
+  esp_err_t err = esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "np_no_ls", &_no_ls);
+  if (err != ESP_ERR_NOT_SUPPORTED) ESP_ERROR_CHECK(err);
+
+  err = esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "np_max_f", &_max_f);
+  if (err != ESP_ERR_NOT_SUPPORTED) ESP_ERROR_CHECK(err);
+
+  if (_no_ls)  ESP_ERROR_CHECK(esp_pm_lock_acquire(_no_ls));
+  if (_max_f)  ESP_ERROR_CHECK(esp_pm_lock_acquire(_max_f));
+#endif
+
+
+  ESP_LOGI(TAG, "rgbLED Initializing...");
+  /*ESP_LOGI(TAG, "PM_ENABLE=%d  PD_PERIPH_LS=%d  PD_CPU_LS=%d",
+         CONFIG_PM_ENABLE,
+         CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP,
+         CONFIG_PM_POWER_DOWN_CPU_IN_LIGHT_SLEEP);*/
+
   strip.begin();
   strip.clear();
-  strip.setBrightness(brightness); // let library handle brightness scaling
+  strip.setBrightness(brightness);   // ensure 'brightness' has a sensible default
   strip.show();
 }
 
@@ -29,6 +66,7 @@ void rgbLED::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
   strip.setBrightness(brightness);
   strip.fill(strip.Color(r, g, b, w));   // instance Color() respects pixelType
   strip.show();
+  ESP_LOGD(TAG,"Static Color Set");
 }
 
 void rgbLED::setRainbow(bool enable, uint16_t speed_ms, uint8_t hue_step) {
@@ -37,9 +75,11 @@ void rgbLED::setRainbow(bool enable, uint16_t speed_ms, uint8_t hue_step) {
     hueStep = hue_step;
     curMode = RAINBOW;
     if (!task) startTask();
+    ESP_LOGD(TAG,"Rainbow Color Enabled");
   } else {
     curMode = STATIC;
     stopTask();
+    ESP_LOGD(TAG,"Rainbow Color Disabled");
     // Keep last static color on the strip (no change)
   }
 }

@@ -8,6 +8,11 @@
 #include <Buttons.h>
 #include "esp_log.h"
 #include "LED.h"
+#include "rgbLED.h"
+#include <Adafruit_NeoPixel.h>
+#include "esp_pm.h"
+
+
 #include "esp_task_wdt.h"
 
 
@@ -18,6 +23,7 @@ TaskManager::TaskManager()
   : drum(ESC_1_PIN),
     buttons(MODE_BUTTON_PIN),
     led(DEBUG_LED_PIN),
+    ledStrip(4, ESC_2_PIN, NEO_GRBW + NEO_KHZ800),
     _isConnected(false),
     _leftDriveInput(0),
     _rightDriveInput(0),
@@ -32,6 +38,11 @@ TaskManager::TaskManager()
 
 void TaskManager::begin(){
 
+    ledStrip.begin();
+    ledStrip.setBrightness(255);
+    ledStrip.setColor(255, 0, 0, 0);
+
+
     drive.begin();
     drive.setForwardInputLimits(511,-512);
     drive.setLateralInputLimits(-512,511);
@@ -44,6 +55,7 @@ void TaskManager::begin(){
     buttons.begin();
 
     led.begin();
+
 
     // create the RTOS task (adjust stack if you overflow)
     xTaskCreatePinnedToCore(
@@ -69,16 +81,35 @@ void TaskManager::managerTask(void* pvParameters) {
         vTaskDelayUntil(&lastWake, period);
 
 
-        //Battery‐State check
+        //Battery‐State check and update LED to indicate the level
+        static int lastBatteryState = -1;
         uint8_t batteryState = self->powerFunctions.getBatteryState();
-        if( batteryState == BATTERY_WARN) {
-            ESP_LOGD(TAG, "Battery Warning");
-        }
-        else if (batteryState == BATTERY_LOW && ENABLE_LOW_BATTERY_SHUTDOWN) {
 
-            self->stopAllMotors();
+        if(lastBatteryState != batteryState){ //Only update if there is a change in the battery state from last time
+            switch (batteryState) {
+                case BATTERY_GOOD:
+                    self->ledStrip.setRainbow(true, 20, 25);   // effect for "good"
+                    break;
+
+                case BATTERY_WARN:
+                    self->ledStrip.setColor(255, 255, 0, 0);      // yellow
+                    break;
+
+                case BATTERY_LOW:
+                    self->ledStrip.setColor(255, 0, 0, 0);        // red
+                    if (ENABLE_LOW_BATTERY_SHUTDOWN) {
+                        self->stopAllMotors();                 // one-shot on transition to LOW
+                    }
+                    break;
+                default:
+                    self->ledStrip.setColor(255, 0, 0,0);        // red
+                    break;
+            }
         }
 
+        lastBatteryState = batteryState;
+
+        
         //If there's a new controller update pending, apply it
         if (self->pendingUpdate) {
             if (self->_isConnected) {
@@ -87,7 +118,6 @@ void TaskManager::managerTask(void* pvParameters) {
                     //This is the safer section as it protects the battery from overdrain
                     self->drive.two_stick_drive(self->_leftDriveInput, self->_rightDriveInput, RIGHTSIDE_UP);
                     self->drum.setSpeed(self->_forwardEscInput, self->_reverseEscInput);
-                    self->motorsStopped = false;
                 }
                 else{
                     //Put in things that can be updated even if voltage is low

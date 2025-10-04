@@ -17,8 +17,8 @@
 #include <WebServer.h>
 #include "OtaUpdater.h"
 
-#include "rgbLED.h"
-#include "esp_pm.h"
+//#include "rgbLED.h"
+//#include "esp_pm.h"
 
 
 //
@@ -42,13 +42,13 @@ WebInterface webIf(server);
 OtaUpdater   ota(server);
 
 
-TaskManager taskManager;
-
 ControllerPtr myControllers[BP32_MAX_GAMEPADS];
 
 ControllerState controllerState;
 
-rgbLED ledStrip(4, ESC_2_PIN, NEO_GRBW + NEO_KHZ800);
+TaskManager taskManager;
+
+//rgbLED ledStrip(4, ESC_2_PIN, NEO_GRBW + NEO_KHZ800);
 
 
 // This callback gets called any time a new gamepad is connected.
@@ -189,13 +189,13 @@ void setup() {
     esp_log_level_set("Drive",          ESP_LOG_DEBUG);
     esp_log_level_set("DriveMotor",     ESP_LOG_DEBUG);
     esp_log_level_set("Drum",           ESP_LOG_DEBUG);
+    esp_log_level_set("rgbLED",         ESP_LOG_DEBUG);
     esp_log_level_set("Main",           ESP_LOG_DEBUG);   
+
 
     ESP_LOGI(TAG,"Firmware: %s", BP32.firmwareVersion());
     const uint8_t* addr = BP32.localBdAddress();
     ESP_LOGI(TAG,"BD Addr: %2X:%2X:%2X:%2X:%2X:%2X", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
-
-    taskManager.begin(); //Begin first so motor drive pins are set correctly and aren't driving for a few seconds during bootup 
 
     // Setup the Bluepad32 callbacks, and the default behavior for scanning or not.
     // By default, if the "startScanning" parameter is not passed, it will do the "start scanning".
@@ -226,19 +226,7 @@ void setup() {
     // By default, it is disabled.
     BP32.enableBLEService(false);
 
-    // 1) De-init any auto-subscribed idle WDT (no error check needed)
-    //esp_task_wdt_deinit();
-
-    // 2) Configure the Task WDT to ignore idle task on core 0
-    /*esp_task_wdt_config_t wdt_conf = {
-        .timeout_ms     = 3000,   // 3 s
-        .idle_core_mask = 0,      // do NOT watch IDLE
-        .trigger_panic  = true    // reboot on timeout
-    };*/
-
-    //ESP_ERROR_CHECK( esp_task_wdt_init(&wdt_conf) );
-
-    // 3) Watch the main Arduino loop task
+    //Watch the main Arduino loop task
     // TWDT already initialized via sdkconfig
     ESP_ERROR_CHECK(esp_task_wdt_add(NULL));   // watch the Arduino loopTask once
 
@@ -246,15 +234,18 @@ void setup() {
     // Disable Wi-Fi power save and light sleep so RMT can init
     WiFi.setSleep(false);
 
-    ledStrip.begin();
-    ledStrip.setBrightness(255);
+    taskManager.begin(); //Begin first so motor drive pins are set correctly and aren't driving for a few seconds during bootup 
+
+    //ledStrip.begin();
+    //ledStrip.setBrightness(255);
 
     // Option 1: solid Red
     //ledStrip.setColor(255, 0, 0, 0);
-    ledStrip.setRainbow(true, 20, 25);
+    //ledStrip.setRainbow(true, 20, 25);
 
     webIf.begin();
     ota.begin();
+
 }
 
 void loop() {
