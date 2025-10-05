@@ -42,12 +42,12 @@ ControllerState controllerState;
 
 TaskManager taskManager;
 
-WebServer server(80);
-WebInterface webIf(server);
-OtaUpdater   ota(server);
+//WebServer server(80);
+//WebInterface webIf(server);
+//OtaUpdater   ota(server);
 
 
-ControllerPtr myControllers[BP32_MAX_GAMEPADS];
+ControllerPtr myControllers[1];
 
 
 //rgbLED ledStrip(4, ESC_2_PIN, NEO_GRBW + NEO_KHZ800);
@@ -57,7 +57,7 @@ ControllerPtr myControllers[BP32_MAX_GAMEPADS];
 // Up to 4 gamepads can be connected at the same time.
 void onConnectedController(ControllerPtr ctl) {
     bool foundEmptySlot = false;
-    for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
+    for (int i = 0; i < 1; i++) {
         if (myControllers[i] == nullptr) {
             ESP_LOGI(TAG, "CALLBACK: Controller is connected, index=%d\n", i);
             // Additionally, you can get certain gamepad properties like:
@@ -191,22 +191,18 @@ void setup() {
     esp_pm_lock_acquire(pm_lock);
 
 
-    
+
     esp_log_level_set("*", ESP_LOG_INFO);   // or ESP_LOG_ERROR
 
+    
     esp_log_level_set("PowerFunctions", ESP_LOG_DEBUG);
     esp_log_level_set("TaskManager",    ESP_LOG_DEBUG);
-    esp_log_level_set("Drive",          ESP_LOG_DEBUG);
-    esp_log_level_set("DriveMotor",     ESP_LOG_DEBUG);
-    esp_log_level_set("Drum",           ESP_LOG_DEBUG);
+    //esp_log_level_set("Drive",          ESP_LOG_DEBUG);
+    //esp_log_level_set("DriveMotor",     ESP_LOG_DEBUG);
+    //esp_log_level_set("Drum",           ESP_LOG_DEBUG);
     esp_log_level_set("rgbLED",         ESP_LOG_DEBUG);
-    esp_log_level_set("Main",           ESP_LOG_DEBUG);   
-
-
-    // Disable Wi-Fi power save and light sleep so RMT can init
-    WiFi.setSleep(false);
-
-    taskManager.begin(); //Begin first so motor drive pins are set correctly and aren't driving for a few seconds during bootup 
+    //esp_log_level_set("Main",           ESP_LOG_DEBUG);   
+    
 
 
     ESP_LOGI(TAG,"Firmware: %s", BP32.firmwareVersion());
@@ -242,6 +238,13 @@ void setup() {
     // By default, it is disabled.
     BP32.enableBLEService(false);
 
+
+    // Disable Wi-Fi power save and light sleep so RMT can init
+    //WiFi.setSleep(false);
+
+    taskManager.begin(); //Begin first so motor drive pins are set correctly and aren't driving for a few seconds during bootup 
+
+
     //Watch the main Arduino loop task
     // TWDT already initialized via sdkconfig
     ESP_ERROR_CHECK(esp_task_wdt_add(NULL));   // watch the Arduino loopTask once
@@ -254,8 +257,8 @@ void setup() {
     //ledStrip.setColor(255, 0, 0, 0);
     //ledStrip.setRainbow(true, 20, 25);
 
-    webIf.begin();
-    ota.begin();
+    //webIf.begin();
+    //ota.begin();
 
 }
 
@@ -271,6 +274,7 @@ void loop() {
             controllerState.rightStickY = myControllers[0]->axisRY();
             controllerState.rightTrigger = myControllers[0]->throttle();
             controllerState.leftTrigger = myControllers[0]->brake();
+            controllerState.buttons = myControllers[0]->buttons();
             taskManager.update(true, controllerState);
         }
         else{
@@ -283,7 +287,7 @@ void loop() {
 
     }
 
-    webIf.handleClient();
+    //webIf.handleClient();
 
     esp_task_wdt_reset();            // feed the WDT
 

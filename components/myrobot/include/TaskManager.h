@@ -21,9 +21,12 @@ public:
     void begin();
     void update(bool isConnected, const ControllerState& cs);
     void stopAllMotors();
+    void flipOrientation();
+
 
 private:
     static void managerTask(void* pvParameters);
+    void processButtons(const ControllerState& cs);
 
     Drive drive;
     Drum drum;
@@ -43,6 +46,8 @@ private:
 
     uint32_t _controllerTimeout;
     volatile bool     motorsStopped;
+
+    volatile uint8_t currentOrientation = RIGHTSIDE_UP;
 
     TaskHandle_t taskHandle;
 };

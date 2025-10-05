@@ -52,6 +52,13 @@ void TaskManager::begin(){
 
     led.begin();
 
+    //vTaskDelay(pdMS_TO_TICKS(100));
+
+    esp_pm_lock_handle_t pm_lock;
+    esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "no_light_sleep", &pm_lock);
+    esp_pm_lock_acquire(pm_lock);
+
+
     ledStrip.begin();
     ledStrip.setBrightness(255);
     ledStrip.setColor(255, 0, 0, 0);
@@ -116,7 +123,7 @@ void TaskManager::managerTask(void* pvParameters) {
                 if( batteryState != BATTERY_LOW ){
                     //Put in things that can be ONLY be updated if the battery is not low
                     //This is the safer section as it protects the battery from overdrain
-                    self->drive.two_stick_drive(self->_leftDriveInput, self->_rightDriveInput, RIGHTSIDE_UP);
+                    self->drive.two_stick_drive(self->_leftDriveInput, self->_rightDriveInput, self->currentOrientation);
                     self->drum.setSpeed(self->_forwardEscInput, self->_reverseEscInput);
                 }
                 else{
@@ -177,6 +184,7 @@ void TaskManager::update(bool isConnected, const ControllerState& cs){
     _rightDriveInput  = cs.rightStickY;
     _forwardEscInput  = cs.rightTrigger;
     _reverseEscInput  = cs.leftTrigger;
+    processButtons(cs);
     pendingUpdate     = true;
 }
 
@@ -188,4 +196,33 @@ void TaskManager::stopAllMotors(){
         drum.stop();
         motorsStopped = true;
     }
+}
+
+void TaskManager::processButtons(const ControllerState& cs){
+    static bool prevA = 0, prevB = 0, prevX = 0, prevY = 0;
+
+    bool A = (cs.buttons >> 0) & 0x01;
+    bool B = (cs.buttons >> 1) & 0x01;
+    bool X = (cs.buttons >> 2) & 0x01;
+    bool Y = (cs.buttons >> 3) & 0x01;
+
+    if( prevY == 0 && Y == 1){
+        flipOrientation();
+    }
+
+    prevA = A;
+    prevB = B;
+    prevX = X;
+    prevY = Y;
+}
+
+
+void TaskManager::flipOrientation(){
+    if( currentOrientation == RIGHTSIDE_UP ){
+        currentOrientation = UPSIDE_DOWN;
+    }
+    else{
+        currentOrientation = RIGHTSIDE_UP;
+    }
+    ESP_LOGI(TAG,"Orientation Flipped.");
 }
