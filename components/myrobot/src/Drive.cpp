@@ -100,6 +100,7 @@ void Drive::combined_direction(int joystick_x, int joystick_y, byte orientation)
     else{rightMotor.setSpeed(right_speed, FORWARD, orientation);}
 }
 
+
 /**
  * Sets the speed of the motors indiviually using two joysticks, one dedicated for each motor
  * 
@@ -133,10 +134,100 @@ void Drive::two_stick_drive(int left_input, int right_input, byte orientation){
 
 }
 
+
 //Stop both drive motors
 void Drive::stop(){
     leftMotor.setSpeed(0, STOP, RIGHTSIDE_UP);
     rightMotor.setSpeed(0, STOP, RIGHTSIDE_UP);
 }
+
+/*ChatgGPT suggested drive style
+
+// Helpers
+static inline float clampf(float v, float lo, float hi){ return v < lo ? lo : (v > hi ? hi : v); }
+
+static inline float applyDeadband(float x, float db){
+    if (fabsf(x) <= db) return 0.0f;
+    // re-scale so remaining range maps back to [-1,1]
+    return (x > 0.0f) ? (x - db) / (1.0f - db) : (x + db) / (1.0f - db);
+}
+
+// Expo curve: out = (1 - expo)*x + expo*(x^3). expo in [0..1]
+static inline float expoCurve(float x, float expo){
+    return (1.0f - expo)*x + expo*(x*x*x);
+}
+
+// Simple per-side slew limiter (units: fraction of full-scale per call)
+struct SlewLimiter {
+    float prev = 0.0f;
+    float rise = 0.12f;  // max step up per tick (0..1)
+    float fall = 0.20f;  // max step down per tick (0..1) - let braking be sharper
+    float apply(float target){
+        float delta = target - prev;
+        float lim = (delta >= 0.0f) ? rise : -fall;
+        if (fabsf(delta) > fabsf(lim)) prev += lim;
+        else prev = target;
+        return prev;
+    }
+};
+
+void Drive::two_stick_drive(int left_input, int right_input, byte orientation){
+
+    // ---- TUNABLES ----
+    const float deadband    = 0.06f;  // ignore tiny stick noise
+    const float expo        = 0.6f;   // 0 = linear, 1 = very gentle center / aggressive ends
+    const float precisionScale = 1.0f; // e.g., set to 0.5f when a "precision mode" button is held
+    const float turnDamp    = 0.10f;  // reduce output during counter-rotation (0..0.3 is typical)
+
+    static SlewLimiter slewL, slewR;  // persists across calls
+
+    // 1) Normalize inputs to [-1, 1] as floats (use your calibrated min/max)
+    float l = (float)(left_input  - _minForwardInput)  / (float)(_maxForwardInput - _minForwardInput) * 2.0f - 1.0f;
+    float r = (float)(right_input - _minForwardInput)  / (float)(_maxForwardInput - _minForwardInput) * 2.0f - 1.0f;
+    l = clampf(l, -1.0f, 1.0f);
+    r = clampf(r, -1.0f, 1.0f);
+
+    // 2) Deadband
+    l = applyDeadband(l, deadband);
+    r = applyDeadband(r, deadband);
+
+    // 3) Expo shaping (gentle around center but preserves full-scale at ends)
+    l = expoCurve(l, expo);
+    r = expoCurve(r, expo);
+
+    // 4) Optional precision scale (wire to a button if you want)
+    l *= precisionScale;
+    r *= precisionScale;
+
+    // 5) Turn damping: when sticks are opposite signs (in-place spin), trim a bit
+    if ((l > 0 && r < 0) || (l < 0 && r > 0)) {
+        l *= (1.0f - turnDamp);
+        r *= (1.0f - turnDamp);
+    }
+
+    // 6) Orientation swap if flipped
+    if (orientation == UPSIDE_DOWN){
+        float tmp = l; l = r; r = tmp;
+    }
+
+    // 7) Slew rate limit (keeps it responsive but prevents sudden jumps)
+    l = slewL.apply(clampf(l, -1.0f, 1.0f));
+    r = slewR.apply(clampf(r, -1.0f, 1.0f));
+
+    // 8) Scale to PWM range and command motors
+    int leftMotorSpeed  = (int)roundf(l * (float)maxPwmVal);
+    int rightMotorSpeed = (int)roundf(r * (float)maxPwmVal);
+
+    int left_speed  = constrain(abs(leftMotorSpeed),  0, maxPwmVal);
+    int right_speed = constrain(abs(rightMotorSpeed), 0, maxPwmVal);
+
+    if (leftMotorSpeed < 0)  { leftMotor.setSpeed(left_speed,  REVERSE, orientation); }
+    else                     { leftMotor.setSpeed(left_speed,  FORWARD, orientation); }
+
+    if (rightMotorSpeed < 0) { rightMotor.setSpeed(right_speed, REVERSE, orientation); }
+    else                     { rightMotor.setSpeed(right_speed, FORWARD, orientation); }
+}
+
+*/
 
 

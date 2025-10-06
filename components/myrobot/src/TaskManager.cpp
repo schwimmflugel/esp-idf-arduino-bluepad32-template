@@ -125,6 +125,7 @@ void TaskManager::managerTask(void* pvParameters) {
                     //This is the safer section as it protects the battery from overdrain
                     self->drive.two_stick_drive(self->_leftDriveInput, self->_rightDriveInput, self->currentOrientation);
                     self->drum.setSpeed(self->_forwardEscInput, self->_reverseEscInput);
+                    self->motorsStopped = false;
                 }
                 else{
                     //Put in things that can be updated even if voltage is low

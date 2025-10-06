@@ -45,7 +45,7 @@ private:
     volatile uint32_t lastUpdateTime;
 
     uint32_t _controllerTimeout;
-    volatile bool     motorsStopped;
+    volatile bool     motorsStopped = true;
 
     volatile uint8_t currentOrientation = RIGHTSIDE_UP;
 
