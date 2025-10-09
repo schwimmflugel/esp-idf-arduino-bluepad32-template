@@ -49,6 +49,8 @@ TaskManager taskManager;
 
 ControllerPtr myControllers[1];
 
+bool controllerHasConnected = false;
+
 
 //rgbLED ledStrip(4, ESC_2_PIN, NEO_GRBW + NEO_KHZ800);
 
@@ -78,7 +80,7 @@ void onConnectedController(ControllerPtr ctl) {
 void onDisconnectedController(ControllerPtr ctl) {
     bool foundController = false;
 
-    for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
+    for (int i = 0; i < 1; i++) {
         if (myControllers[i] == ctl) {
             ESP_LOGI(TAG,"CALLBACK: Controller disconnected from index=%d\n", i);
             myControllers[i] = nullptr;
@@ -195,12 +197,12 @@ void setup() {
     esp_log_level_set("*", ESP_LOG_INFO);   // or ESP_LOG_ERROR
 
     
-    esp_log_level_set("PowerFunctions", ESP_LOG_DEBUG);
-    esp_log_level_set("TaskManager",    ESP_LOG_DEBUG);
+    //esp_log_level_set("PowerFunctions", ESP_LOG_DEBUG);
+    //esp_log_level_set("TaskManager",    ESP_LOG_DEBUG);
     //esp_log_level_set("Drive",          ESP_LOG_DEBUG);
     //esp_log_level_set("DriveMotor",     ESP_LOG_DEBUG);
     //esp_log_level_set("Drum",           ESP_LOG_DEBUG);
-    esp_log_level_set("rgbLED",         ESP_LOG_DEBUG);
+    //esp_log_level_set("rgbLED",         ESP_LOG_DEBUG);
     //esp_log_level_set("Main",           ESP_LOG_DEBUG);   
     
 
@@ -288,6 +290,24 @@ void loop() {
     }
 
     //webIf.handleClient();
+
+    
+    //Once we get our one controller to connect, lock the controller from accepting any others
+    //Need to figure out whether to keep this, the problem is if a controller loses power or 
+    //connection mid-fight, you can't reconnect it without resetting the ESP32
+    
+    if(myControllers[0] && myControllers[0]->isConnected() && !controllerHasConnected) {  
+        ESP_LOGI(TAG, "Controller paired and new connections are locked.");
+        BP32.enableNewBluetoothConnections(false);  // block all new pairings
+        controllerHasConnected = true;
+    }
+    //If a controller had previously connected, but now the controller has been lost -> enter pairing mode again
+    else if( controllerHasConnected && myControllers[0]==nullptr){
+        ESP_LOGI(TAG, "Controller connection lost, turning on pairing.");
+        BP32.enableNewBluetoothConnections(true);  // block all new pairings
+        controllerHasConnected = false;
+    }
+    
 
     esp_task_wdt_reset();            // feed the WDT
 

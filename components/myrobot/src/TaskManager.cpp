@@ -87,50 +87,27 @@ void TaskManager::managerTask(void* pvParameters) {
 
         vTaskDelayUntil(&lastWake, period);
 
-
-        //Battery‐State check and update LED to indicate the level
-        static int lastBatteryState = -1;
-        uint8_t batteryState = self->powerFunctions.getBatteryState();
-
-        if(lastBatteryState != batteryState || true){ //Only update if there is a change in the battery state from last time
-            switch (batteryState) {
-                case BATTERY_GOOD:
-                    self->ledStrip.setRainbow(true, 20, 25);   // effect for "good"
-                    break;
-
-                case BATTERY_WARN:
-                    self->ledStrip.setColor(255, 255, 0, 0);      // yellow
-                    break;
-
-                case BATTERY_LOW:
-                    self->ledStrip.setColor(255, 0, 0, 0);        // red
-                    if (ENABLE_LOW_BATTERY_SHUTDOWN) {
-                        self->stopAllMotors();                 // one-shot on transition to LOW
-                    }
-                    break;
-                default:
-                    self->ledStrip.setColor(255, 0, 0, 0);        // red
-                    break;
-            }
-        }
-
-        lastBatteryState = batteryState;
-
+        self->batteryState = self->powerFunctions.getBatteryState();
         
         //If there's a new controller update pending, apply it
         if (self->pendingUpdate) {
             if (self->_isConnected) {
-                if( batteryState != BATTERY_LOW ){
+                if( self->batteryState != BATTERY_LOW || !ENABLE_LOW_BATTERY_SHUTDOWN){
                     //Put in things that can be ONLY be updated if the battery is not low
                     //This is the safer section as it protects the battery from overdrain
                     self->drive.two_stick_drive(self->_leftDriveInput, self->_rightDriveInput, self->currentOrientation);
                     self->drum.setSpeed(self->_forwardEscInput, self->_reverseEscInput);
                     self->motorsStopped = false;
                 }
-                else{
-                    //Put in things that can be updated even if voltage is low
-                    //Be careful not to put anything that could draw high current and could overdrain the battery
-                }
+                //Put in things that can be updated even if voltage is low
+                //Be careful not to put anything that could draw high current and could overdrain the battery
+                //---------------------------------------------------------------
+                self->adjustLedForBattery();
+
+
+                //---------------------------------------------------------------
+
+                
                 self->lastUpdateTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
             }
             else {
@@ -140,10 +117,12 @@ void TaskManager::managerTask(void* pvParameters) {
             self->pendingUpdate = false;
         }
 
-        //If we've timed out, stop motors (once)
-        if ((xTaskGetTickCount() * portTICK_PERIOD_MS - self->lastUpdateTime) >= self->_controllerTimeout){
+        //If we've timed out or lost connection, stop motors 
+        if ((xTaskGetTickCount() * portTICK_PERIOD_MS - self->lastUpdateTime) >= self->_controllerTimeout ||
+        self->_isConnected == false){
             self->stopAllMotors();
-        }
+            self->ledStrip.setColor(0, 0, 255, 0);        // Blue LEDs indicate the controller has timed out
+        } 
 
 
         ButtonPress buttonVal = self->buttons.checkForPress();
@@ -226,4 +205,33 @@ void TaskManager::flipOrientation(){
         currentOrientation = RIGHTSIDE_UP;
     }
     ESP_LOGI(TAG,"Orientation Flipped.");
+}
+
+void TaskManager::adjustLedForBattery(){
+    //Battery‐State check and update LED to indicate the level
+    static int lastBatteryState = -1;
+    
+    if(lastBatteryState != batteryState || true){ //Only update if there is a change in the battery state from last time
+        switch (batteryState) {
+            case BATTERY_GOOD:
+                ledStrip.setRainbow(true, 20, 25);   // effect for "good"
+                break;
+
+            case BATTERY_WARN:
+                ledStrip.setColor(255, 255, 0, 0);      // yellow
+                break;
+
+            case BATTERY_LOW:
+                ledStrip.setColor(255, 0, 0, 0);        // red
+                if (ENABLE_LOW_BATTERY_SHUTDOWN) {
+                    stopAllMotors();                 // one-shot on transition to LOW
+                }
+                break;
+            default:
+                ledStrip.setColor(255, 0, 0, 0);        // red
+                break;
+        }
+    }
+
+    lastBatteryState = batteryState;
 }

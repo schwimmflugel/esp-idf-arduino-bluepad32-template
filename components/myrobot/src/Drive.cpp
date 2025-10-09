@@ -20,7 +20,7 @@ void Drive::begin(){
     leftMotor.begin();
     rightMotor.begin();
     maxPwmVal = (1 << DRIVE_MOTOR_PWM_RESOLUTION) - 1;
-    ESP_LOGI(TAG, "Max PWM: %d", maxPwmVal);
+    ESP_LOGD(TAG, "Max PWM: %d", maxPwmVal);
 }
 
 /**

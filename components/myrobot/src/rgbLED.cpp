@@ -39,6 +39,8 @@ void rgbLED::begin() {
   strip.clear();
   strip.setBrightness(brightness);   // ensure 'brightness' has a sensible default
   strip.show();
+  startTask();
+
 }
 
 void rgbLED::setBrightness(uint8_t b) {
@@ -51,27 +53,25 @@ void rgbLED::setBrightness(uint8_t b) {
 }
 
 void rgbLED::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
-  stopTask();               // ensure rainbow is off
   curMode = STATIC;
   lastR = r; lastG = g; lastB = b; lastW = w;
-  strip.setBrightness(brightness);
-  strip.fill(strip.Color(r, g, b, w));   // instance Color() respects pixelType
-  strip.show();
+  colorChanged = true; // Signal the task to update
   ESP_LOGD(TAG,"Static Color Set");
 }
 
+ // Update setRainbow:
 void rgbLED::setRainbow(bool enable, uint16_t speed_ms, uint8_t hue_step) {
   if (enable) {
     speedMs = speed_ms;
     hueStep = hue_step;
     curMode = RAINBOW;
+    colorChanged = true; // Signal the task to update
     if (!task) startTask();
     ESP_LOGD(TAG,"Rainbow Color Enabled");
   } else {
     curMode = STATIC;
-    stopTask();
+    colorChanged = true; // Signal the task to update
     ESP_LOGD(TAG,"Rainbow Color Disabled");
-    // Keep last static color on the strip (no change)
   }
 }
 
@@ -86,8 +86,9 @@ void rgbLED::stopTask() {
   task = nullptr;
 }
 
+
 void rgbLED::taskFn(void* arg) {
-  auto* self = static_cast<rgbLED*>(arg);
+auto* self = static_cast<rgbLED*>(arg);
 
   for (;;) {
     if (self->curMode == RAINBOW) {
@@ -104,9 +105,17 @@ void rgbLED::taskFn(void* arg) {
 
       self->baseHue += 256; // advance ~1/256 of full wheel per frame
       vTaskDelay(pdMS_TO_TICKS(self->speedMs));
+    } else if (self->curMode == STATIC) {
+      if (self->colorChanged) {
+        self->strip.setBrightness(self->brightness);
+        self->strip.fill(self->strip.Color(self->lastR, self->lastG, self->lastB, self->lastW));
+        self->strip.show();
+        self->colorChanged = false;
+      }
+      vTaskDelay(pdMS_TO_TICKS(100));
     } else {
-      // Idle lightly when not animating
       vTaskDelay(pdMS_TO_TICKS(100));
     }
   }
 }
+  

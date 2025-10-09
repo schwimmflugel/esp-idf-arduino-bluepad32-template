@@ -27,6 +27,7 @@ public:
 private:
     static void managerTask(void* pvParameters);
     void processButtons(const ControllerState& cs);
+    void adjustLedForBattery();
 
     Drive drive;
     Drum drum;
@@ -46,8 +47,9 @@ private:
 
     uint32_t _controllerTimeout;
     volatile bool     motorsStopped = true;
+    volatile int8_t   batteryState = -1;
 
-    volatile uint8_t currentOrientation = RIGHTSIDE_UP;
+    volatile uint8_t  currentOrientation = RIGHTSIDE_UP;
 
     TaskHandle_t taskHandle;
 };

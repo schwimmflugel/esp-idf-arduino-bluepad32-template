@@ -45,6 +45,9 @@ private:
   volatile uint16_t speedMs    = 30;
   volatile uint8_t  hueStep    = 10;
 
+  
+  volatile bool colorChanged = false; 
+
   // state
   volatile uint16_t baseHue    = 0;     // 0..65535 for ColorHSV
   uint8_t lastR = 0, lastG = 0, lastB = 0, lastW = 0; // for STATIC re-show
