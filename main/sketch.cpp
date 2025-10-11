@@ -197,7 +197,7 @@ void setup() {
     esp_log_level_set("*", ESP_LOG_INFO);   // or ESP_LOG_ERROR
 
     
-    //esp_log_level_set("PowerFunctions", ESP_LOG_DEBUG);
+    esp_log_level_set("PowerFunctions", ESP_LOG_DEBUG);
     //esp_log_level_set("TaskManager",    ESP_LOG_DEBUG);
     //esp_log_level_set("Drive",          ESP_LOG_DEBUG);
     //esp_log_level_set("DriveMotor",     ESP_LOG_DEBUG);
@@ -210,6 +210,8 @@ void setup() {
     ESP_LOGI(TAG,"Firmware: %s", BP32.firmwareVersion());
     const uint8_t* addr = BP32.localBdAddress();
     ESP_LOGI(TAG,"BD Addr: %2X:%2X:%2X:%2X:%2X:%2X", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+
+    ESP_LOGI(TAG,"Robot Firmware: %s", VERSION);
 
     // Setup the Bluepad32 callbacks, and the default behavior for scanning or not.
     // By default, if the "startScanning" parameter is not passed, it will do the "start scanning".

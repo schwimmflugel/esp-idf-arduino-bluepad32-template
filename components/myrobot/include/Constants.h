@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-const char VERSION[] = "Version 1.2";
+const char VERSION[] = "Version 1.3";
 
 //Modifiable Values
 //#undef LOG_LOCAL_LEVEL
@@ -41,8 +41,8 @@ enum ButtonPress {
 #define BUTTON_READ_WAIT 50 //read every ___ milliseconds
 
 //Battery Settings
-const uint16_t MIN_MVOLT_PER_CELL = 3500; //millivolts
-const uint16_t WARN_MVOLT_PER_CELL = 3700; //millivolts
+const uint16_t MIN_MVOLT_PER_CELL = 3600; //millivolts
+const uint16_t WARN_MVOLT_PER_CELL = 3750; //millivolts
 const uint16_t NUM_OF_CELLS = 3; 
 
 const uint16_t BATT_READ_FREQ = 100; //Frequency to measure batttery voltage for safety shutdown
